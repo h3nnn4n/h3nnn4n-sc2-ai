@@ -6,23 +6,43 @@ from sc2.constants import *
 from sc2.player import Bot, Computer
 
 
-class MadUpsideDownLlama(sc2.BotAI):
+class MadUpsideDownLlama_dumb(sc2.BotAI):
     def __init__(self):
-        self.plan = []
         self.verbose = True
+        self.expanded = False
 
     async def on_step(self, iteration):
         if iteration == 0:
             await self.chat_send("(glhf)")
 
-        if iteration % 20 == 0:
+        if iteration % 20 == 0 and iteration > 0:
             await self.distribute_workers()
 
         await self.build_workers()
         await self.manage_supply()
         await self.build_vespene()
-        await self.build_structures()
-        await self.build_army()
+
+        if iteration % 11 == 0:
+            await self.build_structures()
+
+        if iteration % 13 == 0:
+            await self.build_army()
+
+        await self.attack(iteration)
+
+    async def attack(self, iteration):
+        # Attack towards enermy spawn position
+
+        zealots = self.units(ZEALOT).idle
+        stalkers = self.units(STALKER).idle
+        total_units = zealots.amount + stalkers.amount
+
+        if iteration % 100 == 0 and total_units > 15:
+            await self.chat_send('Attacking with %d units' % total_units)
+
+            for unit_group in [zealots, stalkers]:
+                for unit in unit_group:
+                    await self.do(unit.attack(self.select_target(self.state)))
 
     async def build_army(self):
         for gateway in self.units(GATEWAY).ready.noqueue:
@@ -60,6 +80,18 @@ class MadUpsideDownLlama(sc2.BotAI):
                 await self.chat_send('building more gateways')
             await self.build(GATEWAY, near=pylon)
 
+        # If there are at least 3 gateways start then double expand
+        if self.units(GATEWAY).amount + self.units(WARPGATE).amount >= 3:
+            if self.units(NEXUS).amount < 2 and not self.already_pending(NEXUS) and self.can_afford(NEXUS):
+                if self.verbose:
+                    self.chat_send('expanding')
+
+                await self.expand_now()
+                self.expanded = True
+
+                #location = await self.get_next_expansion()
+                #await self.build(NEXUS, near=location)
+
     async def build_workers(self):
         nexus = self.units(NEXUS).first
 
@@ -95,11 +127,17 @@ class MadUpsideDownLlama(sc2.BotAI):
                 if not self.units(ASSIMILATOR).closer_than(1.0, vg).exists:
                     await self.do(worker.build(ASSIMILATOR, vg))
 
+    def select_target(self, state):
+        if self.known_enemy_structures.exists:
+            return random.choice(self.known_enemy_structures)
+
+        return self.enemy_start_locations[0]
+
 
 def main():
-    sc2.run_game(sc2.maps.get("Simple64"), [
+    sc2.run_game(sc2.maps.get("Abyssal Reef LE"), [
         Bot(Race.Protoss, MadUpsideDownLlama()),
-        Computer(Race.Protoss, Difficulty.Easy)
+        Computer(Race.Protoss, Difficulty.Medium)
     ], realtime=False)
 
 if __name__ == '__main__':

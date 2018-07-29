@@ -66,6 +66,27 @@ class MadUpsideDownLlama_bo(sc2.BotAI):
         if iteration % 50 == 0:
             await self.distribute_workers()
 
+        if iteration % 50 == 0:
+            await self.attack(iteration)
+
+    async def attack(self, iteration):
+        zealots = self.units(ZEALOT).idle
+        stalkers = self.units(STALKER).idle
+        total_units = zealots.amount + stalkers.amount
+
+        if total_units >= 8:
+            await self.chat_send('%f Attacking with %d units' % (self.time, total_units))
+
+            for unit_group in [zealots, stalkers]:
+                for unit in unit_group:
+                    await self.do(unit.attack(self.select_target(self.state)))
+
+    def select_target(self, state):
+        if self.known_enemy_structures.exists:
+            return random.choice(self.known_enemy_structures)
+
+        return self.enemy_start_locations[0]
+
 
 def main():
     sc2.run_game(sc2.maps.get("Abyssal Reef LE"), [

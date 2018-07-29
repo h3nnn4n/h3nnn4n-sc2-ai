@@ -29,14 +29,11 @@ class Order:
         else:
             if unit == PYLON:
                 nexus = bot.units(NEXUS).ready.random
-                if random.random() < 0.5:
-                    pos = bot.start_location.towards(bot.game_info.map_center, random.randrange(6, 12))
-                    await bot.build(PYLON, near=pos)
-                else:
-                    await bot.build(PYLON, near=nexus)
+                pos = bot.start_location.towards(bot.game_info.map_center, random.randrange(6, 16))
+                await bot.build(PYLON, near=pos)
             elif unit == ASSIMILATOR:
                 for nexus in bot.units(NEXUS).ready:
-                    vgs = bot.state.vespene_geyser.closer_than(21.0, nexus)
+                    vgs = bot.state.vespene_geyser.closer_than(20.0, nexus)
                     for vg in vgs:
                         if not bot.can_afford(ASSIMILATOR):
                             break

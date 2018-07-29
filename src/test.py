@@ -38,7 +38,7 @@ class MadUpsideDownLlama_dumb(sc2.BotAI):
         total_units = zealots.amount + stalkers.amount
 
         if iteration % 100 == 0 and total_units > 15:
-            await self.chat_send('Attacking with %d units' % total_units)
+            await self.chat_send('%f Attacking with %d units' % (self.time, total_units))
 
             for unit_group in [zealots, stalkers]:
                 for unit in unit_group:
@@ -136,7 +136,7 @@ class MadUpsideDownLlama_dumb(sc2.BotAI):
 
 def main():
     sc2.run_game(sc2.maps.get("Abyssal Reef LE"), [
-        Bot(Race.Protoss, MadUpsideDownLlama()),
+        Bot(Race.Protoss, MadUpsideDownLlama_dumb()),
         Computer(Race.Protoss, Difficulty.Medium)
     ], realtime=False)
 

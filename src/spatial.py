@@ -10,17 +10,24 @@ class SpatialLlama(sc2.BotAI):
     def __init__(self):
         self.verbose = True
         self.expanded = False
+        self.researchs = []
 
     async def on_step(self, iteration):
         if iteration == 0:
-            await self.chat_send("(glhf)")
+            print('%f Rise and shine' % (self.time))
+            return
 
-        if iteration % 20 == 0 and iteration > 0:
+        if iteration % 37 == 0:
             await self.distribute_workers()
 
-        await self.build_workers()
-        await self.manage_supply()
-        await self.build_vespene()
+        if iteration % 7 == 0:
+            await self.build_workers()
+
+        if iteration % 23 == 0:
+            await self.manage_supply()
+
+        if iteration % 31 == 0:
+            await self.build_vespene()
 
         if iteration % 11 == 0:
             await self.build_structures()
@@ -28,31 +35,76 @@ class SpatialLlama(sc2.BotAI):
         if iteration % 13 == 0:
             await self.build_army()
 
-        await self.attack(iteration)
+        if iteration % 17 == 0:
+            await self.attack()
+            await self.defend()
 
-    async def attack(self, iteration):
-        # Attack towards enermy spawn position
+    async def defend(self):
+        for nexus in self.units(NEXUS):
+            threats = self.known_enemy_units.closer_than(30, nexus.position)
+
+            if threats:
+                zealots = self.units(ZEALOT).idle
+                stalkers = self.units(STALKER).idle
+                total_units = zealots.amount + stalkers.amount
+
+                random_threat = threats.random
+
+                print('%6.2f found %d threads, defending with %d units' % (self.time, threats.amount, total_units))
+
+                for unit_group in [zealots, stalkers]:
+                    for unit in unit_group:
+                        await self.do(unit.attack(random_threat))
+
+                    return
+
+    async def attack(self):
+        # Attack towards enemy spawn position
 
         zealots = self.units(ZEALOT).idle
         stalkers = self.units(STALKER).idle
         total_units = zealots.amount + stalkers.amount
 
-        if iteration % 100 == 0 and total_units > 15:
-            await self.chat_send('%f Attacking with %d units' % (self.time, total_units))
+        if total_units > 15:
+            print('%6.3f Attacking with %d units' % (self.time, total_units))
 
             for unit_group in [zealots, stalkers]:
                 for unit in unit_group:
                     await self.do(unit.attack(self.select_target(self.state)))
 
     async def build_army(self):
+
+        # Iterates over all gateways
         for gateway in self.units(GATEWAY).ready.noqueue:
             abilities = await self.get_available_abilities(gateway)
-            if AbilityId.GATEWAYTRAIN_STALKER in abilities:
-                if self.can_afford(STALKER) and self.supply_left > 0:
+
+            # Checks if the gateway can morph into a warpgate
+            if AbilityId.MORPH_WARPGATE in abilities and self.can_afford(AbilityId.MORPH_WARPGATE):
+                await self.do(gateway(MORPH_WARPGATE))
+
+            # Else, tries to build a stalker
+            elif AbilityId.GATEWAYTRAIN_STALKER in abilities:
+                if self.can_afford(STALKER) and self.supply_left > 2:
                     await self.do(gateway.train(STALKER))
+
+            # Else, tries to build a zealot
             elif AbilityId.GATEWAYTRAIN_ZEALOT in abilities:
-                if self.can_afford(ZEALOT) and self.supply_left > 0:
+                if self.can_afford(ZEALOT) and self.supply_left > 2:
                     await self.do(gateway.train(ZEALOT))
+
+        # Iterates over all warpgates and warp in stalkers
+        for warpgate in self.units(WARPGATE).ready:
+            abilities = await self.get_available_abilities(warpgate)
+            if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
+                pylon = self.units(PYLON).ready.random  # TODO: Smartly select a pylon. Closest to the enemy base?
+                pos = pylon.position.to2.random_on_distance(4)
+                placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+
+                if placement is None:
+                    print("%6.2f can't place" % (self.time))
+                    return
+
+                await self.do(warpgate.warp_in(STALKER, placement))
 
     async def build_structures(self):
         # Only start building main structures if there is
@@ -65,26 +117,26 @@ class SpatialLlama(sc2.BotAI):
         # Build the first gateway
         if self.can_afford(GATEWAY) and self.units(WARPGATE).amount == 0 and self.units(GATEWAY).amount == 0:
             if self.verbose:
-                await self.chat_send('starting first gateway')
+                print('%6.2f starting first gateway' % (self.time))
             await self.build(GATEWAY, near=pylon)
 
         # Build the cybernetics core after the first gateway is ready
         if self.can_afford(CYBERNETICSCORE) and self.units(CYBERNETICSCORE).amount == 0 and self.units(GATEWAY).ready:
             if self.verbose:
-                await self.chat_send('starting cybernetics')
+                print('%6.2f starting first gateway' % (self.time))
             await self.build(CYBERNETICSCORE, near=pylon)
 
         # Build more gateways after the cybernetics core is ready
         if self.can_afford(GATEWAY) and self.units(WARPGATE).amount < 4 and self.units(GATEWAY).amount < 4 and self.units(CYBERNETICSCORE).ready:
             if self.verbose:
-                await self.chat_send('building more gateways')
+                print('%6.2f starting more gateways' % (self.time))
             await self.build(GATEWAY, near=pylon)
 
         # If there are at least 3 gateways start then double expand
         if self.units(GATEWAY).amount + self.units(WARPGATE).amount >= 3:
             if self.units(NEXUS).amount < 2 and not self.already_pending(NEXUS) and self.can_afford(NEXUS):
                 if self.verbose:
-                    self.chat_send('expanding')
+                    print('%6.2f expanding' % (self.time))
 
                 await self.expand_now()
                 self.expanded = True
@@ -92,22 +144,37 @@ class SpatialLlama(sc2.BotAI):
                 #location = await self.get_next_expansion()
                 #await self.build(NEXUS, near=location)
 
+    async def manage_upgrades(self):
+        if self.units(CYBERNETICSCORE).ready.exists and self.can_afford(RESEARCH_WARPGATE) and not self.already_pending(RESEARCH_WARPGATE):
+            ccore = self.units(CYBERNETICSCORE).ready.first
+            await self.do(ccore(RESEARCH_WARPGATE))
+
     async def build_workers(self):
         nexus = self.units(NEXUS).ready
+        nexus = nexus.noqueue
 
         if nexus and self.workers.amount < self.units(NEXUS).amount * 22:
             if self.can_afford(PROBE):
                 await self.do(nexus.random.train(PROBE))
 
     async def manage_supply(self):
-        nexus = self.units(NEXUS).ready.random
+        nexus = self.units(NEXUS).ready
 
-        if self.supply_left < 4 and not self.already_pending(PYLON):
+        if not nexus:
+            return
+        else:
+            nexus = nexus.random
+
+        if not nexus:
+            return
+
+        if self.supply_left < 8 and not self.already_pending(PYLON):
             if self.can_afford(PYLON):
                 while True:
-                    pos = self.start_location.towards(self.game_info.map_center, random.randrange(4, 18))
-                    mf = self.state.mineral_field.closer_than(4, pos).closest_to(pos)
-                    if mf:
+                    pos = self.start_location.towards(self.game_info.map_center, random.randrange(8, 18))
+                    mineral_fields = self.state.mineral_field.closer_than(8, nexus).closer_than(4, pos)
+
+                    if mineral_fields:
                         continue
 
                     await self.build(PYLON, near=pos)

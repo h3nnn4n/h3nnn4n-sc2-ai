@@ -7,6 +7,8 @@ from sc2.player import Bot, Computer
 
 from build_order import BuildOrder, Order
 
+from conditions import *
+
 
 class MadUpsideDownLlama_bo(sc2.BotAI):
     def __init__(self):
@@ -16,27 +18,42 @@ class MadUpsideDownLlama_bo(sc2.BotAI):
         if iteration == 0:
             await self.chat_send("(glhf)")
 
-            self.build_order = BuildOrder(bot=self, verbose=self.verbose)
+            self.orders = [
+                Order(  # Build probes to fully saturate
+                    requires=unit_count_less_than(PROBE, 18, include_pending=True),
+                    build=PROBE,
+                    build_at=NEXUS
+                ),
+                Order(  # Build first pylon
+                    requires=unit_count_less_than(PYLON, 1, include_pending=True),
+                    build=PYLON
+                ),
+                Order(  # Build first gateway
+                    requires=all_of(unit_count_less_than(GATEWAY, 1, include_pending=True), unit_count(PYLON, 1)),
+                    build=GATEWAY
+                ),
+                Order(  # Build cybernetics core
+                    requires=all_of(unit_count_less_than(CYBERNETICSCORE, 1, include_pending=True), unit_count_at_least(GATEWAY, 1)),
+                    build=CYBERNETICSCORE
+                ),
+                Order(  # Build 3 more gateways
+                    requires=all_of(unit_count(CYBERNETICSCORE, 1, include_pending=True), unit_count_less_than(GATEWAY, 4, include_pending=True)),
+                    build=GATEWAY
+                ),
+                Order(  # Build 3 more pylons
+                    requires=all_of(unit_count(CYBERNETICSCORE, 1, include_pending=True), unit_count_less_than(PYLON, 3, include_pending=True)),
+                    build=PYLON
+                ),
+            ]
 
-            await self.build_order.add(Order(  # Build probes to fully saturate
-                build={'unit': [(PROBE, 1)]},
-                until={'unit': [(PROBE, 22)]}))
-
-            await self.build_order.add(Order(  # Build first pylon
-                wait_for={'unit': [(PROBE, 12)]},
-                build={'structure': [(PYLON, 1)]}))
-
-            await self.build_order.add(Order(   # Build first gateway
-                wait_for={'structure': [(PYLON, 1)], 'unit': [(PROBE, 16)]},
-                build={'structure': [(GATEWAY, 1)]}))
-
-            #await self.build_order.add(Order(   # Build Cybernetics core
-                #wait_for={'structure': [(GATEWAY, 1)]},
-                #build={'structure': [(CYBERNETICSCORE)]}))
-
-        if iteration % 50 == 0:
-            await self.chat_send("running bo logic")
-            await self.build_order.do_next_action()
+        if iteration % 25 == 0:
+            for order in self.orders:
+                if order.can_build(self):
+                    if self.can_afford(order.build):
+                        await self.chat_send("can build and afford")
+                        await order.execute(self)
+                    else:
+                        pass
 
 
 def main():

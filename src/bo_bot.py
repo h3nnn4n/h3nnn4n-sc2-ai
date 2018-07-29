@@ -20,7 +20,7 @@ class MadUpsideDownLlama_bo(sc2.BotAI):
 
             self.orders = [
                 Order(  # Build probes to fully saturate
-                    requires=unit_count_less_than(PROBE, 18, include_pending=True),
+                    requires=unit_count_less_than(PROBE, 22, include_pending=True),
                     build=PROBE,
                     build_at=NEXUS
                 ),
@@ -36,6 +36,10 @@ class MadUpsideDownLlama_bo(sc2.BotAI):
                     requires=all_of(unit_count_less_than(CYBERNETICSCORE, 1, include_pending=True), unit_count_at_least(GATEWAY, 1, include_pending=True)),
                     build=CYBERNETICSCORE
                 ),
+                Order(  # Build 2 assimilators
+                    requires=all_of(unit_count(CYBERNETICSCORE, 1, include_pending=True)),
+                    build=ASSIMILATOR
+                ),
                 Order(  # Build 3 more gateways
                     requires=all_of(unit_count(CYBERNETICSCORE, 1, include_pending=True), unit_count_less_than(GATEWAY, 4, include_pending=True)),
                     build=GATEWAY
@@ -44,16 +48,23 @@ class MadUpsideDownLlama_bo(sc2.BotAI):
                     requires=all_of(unit_count(CYBERNETICSCORE, 1, include_pending=True), unit_count_less_than(PYLON, 3, include_pending=True)),
                     build=PYLON
                 ),
+                Order(  # Build 8 stalkers when the cybernetics core is ready
+                    requires=all_of(unit_count(CYBERNETICSCORE, 1), unit_count_less_than(STALKER, 8)),
+                    build=STALKER,
+                    build_at=GATEWAY
+                ),
             ]
 
         if iteration % 25 == 0:
             for order in self.orders:
                 if order.can_build(self):
                     if self.can_afford(order.build):
-                        await self.chat_send("can build and afford")
                         await order.execute(self)
                     else:
                         pass
+
+        if iteration % 50 == 0:
+            await self.distribute_workers()
 
 
 def main():

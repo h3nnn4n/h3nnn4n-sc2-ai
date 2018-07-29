@@ -1,6 +1,6 @@
 import random
 
-from sc2.constants import ZEALOT, STALKER, NEXUS, GATEWAY, CYBERNETICSCORE, PYLON, PROBE
+from sc2.constants import ZEALOT, STALKER, NEXUS, GATEWAY, CYBERNETICSCORE, PYLON, PROBE, ASSIMILATOR
 
 
 class Order:
@@ -34,6 +34,20 @@ class Order:
                     await bot.build(PYLON, near=pos)
                 else:
                     await bot.build(PYLON, near=nexus)
+            elif unit == ASSIMILATOR:
+                for nexus in bot.units(NEXUS).ready:
+                    vgs = bot.state.vespene_geyser.closer_than(21.0, nexus)
+                    for vg in vgs:
+                        if not bot.can_afford(ASSIMILATOR):
+                            break
+
+                        worker = bot.select_build_worker(vg.position)
+                        if worker is None:
+                            break
+
+                        if not bot.units(ASSIMILATOR).closer_than(1.0, vg).exists:
+                            await bot.do(worker.build(ASSIMILATOR, vg))
+                            break
             else:
                 pylon = bot.units(PYLON).ready
                 if pylon:

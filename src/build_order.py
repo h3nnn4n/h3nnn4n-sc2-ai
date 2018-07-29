@@ -35,8 +35,9 @@ class Order:
                 else:
                     await bot.build(PYLON, near=nexus)
             else:
-                pylon = bot.units(PYLON).ready.random
-                await bot.build(unit, near=pylon)
+                pylon = bot.units(PYLON).ready
+                if pylon:
+                    await bot.build(unit, near=pylon.random)
 
 
 class BuildOrder:

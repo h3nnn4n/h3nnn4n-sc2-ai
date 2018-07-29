@@ -33,7 +33,7 @@ class MadUpsideDownLlama_bo(sc2.BotAI):
                     build=GATEWAY
                 ),
                 Order(  # Build cybernetics core
-                    requires=all_of(unit_count_less_than(CYBERNETICSCORE, 1, include_pending=True), unit_count_at_least(GATEWAY, 1)),
+                    requires=all_of(unit_count_less_than(CYBERNETICSCORE, 1, include_pending=True), unit_count_at_least(GATEWAY, 1, include_pending=True)),
                     build=CYBERNETICSCORE
                 ),
                 Order(  # Build 3 more gateways
@@ -60,7 +60,7 @@ def main():
     sc2.run_game(sc2.maps.get("Abyssal Reef LE"), [
         Bot(Race.Protoss, MadUpsideDownLlama_bo()),
         Computer(Race.Protoss, Difficulty.Medium)
-    ], realtime=True)
+    ], realtime=False, step_time_limit=2.0)
 
 if __name__ == '__main__':
     main()

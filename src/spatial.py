@@ -154,15 +154,17 @@ class SpatialLlama(sc2.BotAI):
             abilities = await self.get_available_abilities(warpgate)
             if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
                 if self.can_afford(STALKER) and self.supply_left > 2:
-                    pylon = self.units(PYLON).ready.random  # TODO: Smartly select a pylon. Closest to the enemy base?
-                    pos = pylon.position.to2.random_on_distance(4)
-                    placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+                    for _ in range(10):  # Tries to find a suitable place to warpin the unit
+                        pylon = self.units(PYLON).ready.random  # TODO: Smartly select a pylon. Closest to the enemy base?
+                        pos = pylon.position.to2.random_on_distance(4)
+                        placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
 
-                    if placement is None:
-                        print("%6.2f can't place" % (self.time))
-                        return
+                        if placement is None:
+                            print("%6.2f can't place" % (self.time))
+                            return
 
-                    await self.do(warpgate.warp_in(STALKER, placement))
+                        await self.do(warpgate.warp_in(STALKER, placement))
+                        continue
 
     async def build_structures(self):
         # Only start building main structures if there is

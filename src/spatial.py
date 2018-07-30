@@ -63,11 +63,16 @@ class SpatialLlama(sc2.BotAI):
 
             if idle_stalkers.exists:
                 print('%6.2f Scouting' % (self.time))
+
                 for i in range(self.number_of_scouting_units):
                     stalker = idle_stalkers.furthest_to(self.units(NEXUS).first)
                     if stalker:
                         target = random.sample(list(self.expansion_locations), k=1)[0]
                         await self.do(stalker.attack(target))
+
+                    idle_stalkers = self.units(STALKER).idle
+                    if not idle_stalkers.exists:
+                        break
             else:
                 pass
                 #print('     - no units to scout')

@@ -4,6 +4,7 @@ import sc2
 from sc2 import Race, Difficulty
 from sc2.constants import *
 from sc2.player import Bot, Computer
+from sc2.position import Point2
 
 
 class SpatialLlama(sc2.BotAI):
@@ -11,11 +12,20 @@ class SpatialLlama(sc2.BotAI):
         self.verbose = True
         self.expanded = False
         self.researched_warpgate = False
+        self.threat_proximity = 20
+
+        self.number_of_scouting_units = 2
+        self.scout_interval = 30  # Seconds
+        self.scout_timer = 0
+        self.map_size = None
+
+    def on_step(self, iteration):
+        print('%6.2f Rise and shine' % (self.time))
+        self.map_size = self.game_info.map_size
 
     async def on_step(self, iteration):
-        if iteration == 0:
-            print('%f Rise and shine' % (self.time))
-            return
+        if iteration == 0:  # Do nothing on the first iteration to avoid
+            return          # everything being done at the same time
 
         if iteration % 37 == 0:
             await self.distribute_workers()
@@ -36,22 +46,42 @@ class SpatialLlama(sc2.BotAI):
         if iteration % 13 == 0:
             await self.build_army()
 
+        if iteration % 17 == 0:
+            await self.scout_controller()
+
         if iteration % 41 == 0:
             await self.defend()
             #await self.attack()
+
+    async def scout_controller(self):
+        current_time = self.time
+        if current_time - self.scout_timer > self.scout_interval:
+            self.scout_timer = self.time
+            idle_stalkers = self.units(STALKER).idle
+
+            if idle_stalkers.exists:
+                print('%6.2f Scouting' % (self.time))
+                for i in range(self.number_of_scouting_units):
+                    stalker = idle_stalkers.furthest_to(self.units(NEXUS).first)
+                    if stalker:
+                        target = stalker.position.random_on_distance(30)  # Sends the unit in a random direction with a distance of 30
+                        await self.do(stalker.attack(target))
+            else:
+                pass
+                #print('     - no units to scout')
 
     async def defend(self):
         # Attacks units that get too close to a nexus or a pylon
 
         for pylon in self.units(PYLON):
-            threats = self.known_enemy_units.closer_than(20, pylon.position)
+            threats = self.known_enemy_units.closer_than(self.threat_proximity, pylon.position)
             if threats.exists:
                 print('%6.2f found %d threats' % (self.time, threats.amount))
                 await self.target_enemy_unit(threats.first)
                 break
 
         for nexus in self.units(NEXUS):
-            threats = self.known_enemy_units.closer_than(20, nexus.position)
+            threats = self.known_enemy_units.closer_than(self.threat_proximity, nexus.position)
             if threats.exists:
                 print('%6.2f found %d threats' % (self.time, threats.amount))
                 await self.target_enemy_unit(threats.first)
@@ -73,7 +103,7 @@ class SpatialLlama(sc2.BotAI):
             for unit in unit_group:
                 if is_worker:
                     await self.do(unit.attack(target))
-                    print('------ target is a probe, sending a single unit')
+                    print('     - target is a probe, sending a single unit')
                     return
                 else:
                     await self.do(unit.attack(target.position))
@@ -182,16 +212,16 @@ class SpatialLlama(sc2.BotAI):
                 await self.do(nexus.random.train(PROBE))
 
     async def manage_supply(self):
-        nexus = self.units(NEXUS).ready
+        for tries in range(5):  # Only tries 5 different placements
+            nexus = self.units(NEXUS).ready
 
-        if not nexus:
-            return
+            if not nexus:
+                return
 
-        nexus = nexus.random
+            nexus = nexus.random
 
-        if self.supply_left < 8 and not self.already_pending(PYLON):
-            if self.can_afford(PYLON):
-                for tries in range(5):  # Only tries 5 different placements
+            if self.supply_left < 8 and not self.already_pending(PYLON):
+                if self.can_afford(PYLON):
                     pos = await self.find_placement(PYLON, nexus.position, placement_step=2)
                     mineral_fields = self.state.mineral_field.closer_than(8, nexus).closer_than(4, pos)
 
@@ -206,7 +236,7 @@ class SpatialLlama(sc2.BotAI):
             return
 
         for nexus in self.units(NEXUS).ready:
-            vgs = self.state.vespene_geyser.closer_than(20.0, nexus)
+            vgs = self.state.vespene_geyser.closer_than(20, nexus)
             for vg in vgs:
                 if not self.can_afford(ASSIMILATOR):
                     break

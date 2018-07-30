@@ -27,8 +27,10 @@ class SpatialLlama(sc2.BotAI):
         if iteration == 0:  # Do nothing on the first iteration to avoid
             return          # everything being done at the same time
 
-        if iteration % 37 == 0:
+        if iteration % 121 == 0:
             await self.distribute_workers()
+
+        if iteration % 37 == 0:
             await self.manage_upgrades()
 
         if iteration % 7 == 0:
@@ -51,7 +53,7 @@ class SpatialLlama(sc2.BotAI):
 
         if iteration % 41 == 0:
             await self.defend()
-            #await self.attack()
+            await self.attack()
 
     async def scout_controller(self):
         current_time = self.time
@@ -64,7 +66,7 @@ class SpatialLlama(sc2.BotAI):
                 for i in range(self.number_of_scouting_units):
                     stalker = idle_stalkers.furthest_to(self.units(NEXUS).first)
                     if stalker:
-                        target = stalker.position.random_on_distance(30)  # Sends the unit in a random direction with a distance of 30
+                        target = random.sample(list(self.expansion_locations), k=1)[0]
                         await self.do(stalker.attack(target))
             else:
                 pass

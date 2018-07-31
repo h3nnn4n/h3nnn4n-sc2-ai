@@ -183,17 +183,26 @@ class SpatialLlama(sc2.BotAI):
             abilities = await self.get_available_abilities(warpgate)
             if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
                 if self.can_afford(STALKER) and self.supply_left > 2:
-                    for _ in range(10):  # Tries to find a suitable place to warpin the unit
-                        pylon = self.units(PYLON).ready.random  # TODO: Smartly select a pylon. Closest to the enemy base?
-                        pos = pylon.position.to2.random_on_distance(4)
-                        placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+                    # Smartly find a good pylon boy to warp in units next to it
+                    pylon = self.pylon_with_less_units()
+                    pos = pylon.position.to2.random_on_distance(4)
+                    placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
 
-                        if placement is None:
-                            print("%6.2f can't place" % (self.time))
-                            return
-
+                    if placement:
                         await self.do(warpgate.warp_in(STALKER, placement))
-                        continue
+                    else:
+                        # otherwise just brute force it
+                        for _ in range(10):  # TODO tweak this
+                            pylon = self.units(PYLON).ready.random
+                            pos = pylon.position.to2.random_on_distance(4)
+                            placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+
+                            if placement is None:
+                                print("%6.2f can't place" % (self.time))
+                                return
+
+                            await self.do(warpgate.warp_in(STALKER, placement))
+                            continue
 
     async def build_structures(self):
         # Only start building main structures if there is
@@ -291,6 +300,24 @@ class SpatialLlama(sc2.BotAI):
             return random.choice(self.known_enemy_structures)
 
         return self.enemy_start_locations[0]
+
+    # Finds the pylon with more "space" next to it
+    # Where more space == Less units
+    # TODO consider "warpable" space
+    def pylon_with_less_units(self, distance=4):
+        pylons = self.units(PYLON).ready
+
+        good_boy_pylon = None
+        units_next_to_good_boy_pylon = float('inf')
+
+        for pylon in pylons:
+            units_next_to_candidate_pylon = self.units.closer_than(distance, pylon).amount
+
+            if units_next_to_candidate_pylon < units_next_to_good_boy_pylon:
+                good_boy_pylon = pylon
+                units_next_to_good_boy_pylon = units_next_to_candidate_pylon
+
+        return good_boy_pylon
 
 
 def main():

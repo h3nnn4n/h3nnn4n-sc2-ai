@@ -1,0 +1,2 @@
+ - Scouting
+  - [x] Basic scouting based on the expansion locations

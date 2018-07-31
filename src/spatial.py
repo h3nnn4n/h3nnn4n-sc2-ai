@@ -14,6 +14,13 @@ class SpatialLlama(sc2.BotAI):
         self.researched_warpgate = False
         self.threat_proximity = 20
 
+        self.attacking_units = set()
+        self.attack_target = None
+
+        self.defending_units = set()
+        self.defending_from = set()
+
+        self.scouting_units = set()
         self.number_of_scouting_units = 2
         self.scout_interval = 30  # Seconds
         self.scout_timer = 0
@@ -59,23 +66,45 @@ class SpatialLlama(sc2.BotAI):
         current_time = self.time
         if current_time - self.scout_timer > self.scout_interval:
             self.scout_timer = self.time
-            idle_stalkers = self.units(STALKER).idle
 
-            if idle_stalkers.exists:
-                print('%6.2f Scouting' % (self.time))
+            n_scouting_units_assigned = len(self.scouting_units)
+            missing_scouting_units = self.number_of_scouting_units - n_scouting_units_assigned
 
-                for i in range(self.number_of_scouting_units):
-                    stalker = idle_stalkers.furthest_to(self.units(NEXUS).first)
-                    if stalker:
-                        target = random.sample(list(self.expansion_locations), k=1)[0]
-                        await self.do(stalker.attack(target))
+            # Uses the previous assigned scouting units to keep scouting
+            for scouting_unit_tag in list(self.scouting_units):
+                unit = self.units.find_by_tag(scouting_unit_tag)
 
-                    idle_stalkers = self.units(STALKER).idle
-                    if not idle_stalkers.exists:
-                        break
-            else:
-                pass
-                #print('     - no units to scout')
+                if unit.exists:
+                    target = random.sample(list(self.expansion_locations), k=1)[0]
+                    await self.do(unit.attack(target))
+                else:
+                    # If a scouting unit isnt found then it is (most likely) dead
+                    # and we need another to replace it
+                    self.scouting_units.remove(unit)
+                    missing_scouting_units += 1
+
+            if missing_scouting_units > 0:
+                idle_stalkers = self.units(STALKER).idle
+
+                if idle_stalkers.exists:
+                    print('%6.2f Scouting' % (self.time))
+
+                    # If there is no unit assigned to scouting
+                    # the the idle unit furthest from the base
+                    for i in range(missing_scouting_units):
+                        stalker = idle_stalkers.furthest_to(self.units(NEXUS).first)
+
+                        if stalker:
+                            target = random.sample(list(self.expansion_locations), k=1)[0]
+                            await self.do(stalker.attack(target))
+                            self.scouting_units
+
+                        idle_stalkers = self.units(STALKER).idle
+                        if not idle_stalkers.exists:
+                            break
+                else:
+                    pass
+                    #print('     - no units to scout')
 
     async def defend(self):
         # Attacks units that get too close to a nexus or a pylon

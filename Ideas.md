@@ -16,6 +16,10 @@
  - [ ] Expand when necessary
  - [ ] Build more gateways and other things
  - [ ] Advance tech and variate the army
+ - [ ] Forge and research upgrades
+
+ - Nits and bugs
+ - [ ] Fix warpins failing due to bad placement
 
  - [ ] Update this list
  - [ ] Find more things that are missing

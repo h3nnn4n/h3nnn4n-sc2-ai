@@ -9,6 +9,47 @@ from sc2.position import Point2
 import sys
 
 
+class UnitMicro:
+    def __init__(self, tag, unit_type, bot, scouting=False, defending=False):
+        self.tag = tag
+        self.unit_type = unit_type
+        self.current_target = None
+        self.scouting = scouting
+        self.defending = defending
+        self.attacking = not scouting and not defending
+        self.bot = bot
+
+        self.unit = bot.units.find_by_tag(tag)
+        self.ground_range = self.unit.ground_range
+        self.air_range = self.unit.air_range
+        self.sight_range = self.unit.sight_range
+        self.can_attack_air = self.unit.can_attack_air
+        self.can_attack_ground = self.unit.can_attack_ground
+
+    async def update(self):
+        self.unit = self.bot.units.find_by_tag(self.tag)
+        if not self.unit is not None:
+            return
+
+        near_ground_units = self.bot.known_enemy_units().closer_than(self.ground_range, self.unit)
+        near_air_units = self.bot.known_enemy_units().closer_than(self.air_range, self.unit)
+        near_structures = self.bot.known_enemy_structures().closer_than(self.ground_range, self.unit)
+
+        target = None
+
+        if near_air_units.exists:
+            target = near_air_units.closest_to(self.unit)
+        elif near_ground_units.exists:
+            target = near_ground_units.closest_to(self.unit)
+        elif near_structures.exists:
+            target = near_structures.closest_to(self.unit)
+
+        if target is None:
+            return
+
+        await self.bot.do(self.unit.attack(target))
+
+
 class SpatialLlama(sc2.BotAI):
     def __init__(self):
         self.verbose = True
@@ -18,6 +59,7 @@ class SpatialLlama(sc2.BotAI):
 
         self.attacking_units = set()
         self.attack_target = None
+        self.units_available_for_attack = {ZEALOT: 'ZEALOT', STALKER: 'STALKER'}
 
         self.defending_units = set()
         self.defending_from = set()
@@ -91,10 +133,15 @@ class SpatialLlama(sc2.BotAI):
 
         if iteration % 17 == 0:
             await self.scout_controller()
+            await self.micro_controller()
 
         if iteration % 41 == 0:
             await self.defend()
             await self.attack()
+
+    async def micro_controller(self):
+        for unit in self.attacking_units:
+            await unit.update()
 
     async def scout_controller(self):
         current_time = self.time
@@ -181,15 +228,16 @@ class SpatialLlama(sc2.BotAI):
     async def attack(self):
         # Attack towards enemy spawn position
 
-        zealots = self.units(ZEALOT).idle
-        stalkers = self.units(STALKER).idle
-        total_units = zealots.amount + stalkers.amount
+        total_units = 0
+        for unit_type in self.units_available_for_attack.keys():
+            total_units += self.units(unit_type).amount
 
         if total_units > 15:
             print('%6.2f Attacking with %d units' % (self.time, total_units))
 
-            for unit_group in [zealots, stalkers]:
-                for unit in unit_group:
+            for unit_type in self.units_available_for_attack.keys():
+                for unit in self.units(unit_type):
+                    self.attacking_units.add(UnitMicro(unit.tag, unit_type, self))
                     await self.do(unit.attack(self.select_target(self.state)))
 
     async def build_army(self):

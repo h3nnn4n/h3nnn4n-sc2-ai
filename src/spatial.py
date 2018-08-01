@@ -6,6 +6,8 @@ from sc2.constants import *
 from sc2.player import Bot, Computer
 from sc2.position import Point2
 
+import sys
+
 
 class SpatialLlama(sc2.BotAI):
     def __init__(self):
@@ -26,11 +28,43 @@ class SpatialLlama(sc2.BotAI):
         self.scout_timer = 0
         self.map_size = None
 
-    def on_step(self, iteration):
-        print('%6.2f Rise and shine' % (self.time))
+        self.start_forge_after = 240  # seconds - 4min
+        self.forge_research_priority = ['ground_weapons', 'shield']
+
+        self.upgrades = {
+            'ground_weapons': [
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1,
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2,
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3],
+            'ground_armor': [
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1,
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2,
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3],
+            'shield' : [
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL1,
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL2,
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL3]
+            }
+
+        self.upgrade_names = {
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1: 'GROUND WEAPONS 1',
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2: 'GROUND WEAPONS 2',
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3: 'GROUND WEAPONS 2',
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1: 'GROUND ARMOR 2',
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2: 'GROUND ARMOR 2',
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3: 'GROUND ARMOR 2',
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL1: 'SHIELDS 1',
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL2: 'SHIELDS 2',
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL3: 'SHIELDS 3'
+            }
+
+    def on_start(self):
+        print('%6.2f Rise and shine' % (0))
         self.map_size = self.game_info.map_size
 
     async def on_step(self, iteration):
+        sys.stdout.flush()
+
         if iteration == 0:  # Do nothing on the first iteration to avoid
             return          # everything being done at the same time
 
@@ -244,11 +278,39 @@ class SpatialLlama(sc2.BotAI):
 
                 self.expanded = True
 
+        # Build 2 forges
+        if self.time > self.start_forge_after and self.units(FORGE).amount < 2:
+            if self.can_afford(FORGE) and not self.already_pending(FORGE):
+                if self.verbose:
+                    print('%6.2f building forge' % (self.time))
+                await self.build(FORGE, near=pylon)
+
     async def manage_upgrades(self):
+        await self.manage_cyberbetics_upgrades()
+        await self.manage_forge_upgrades()
+
+    async def manage_cyberbetics_upgrades(self):
         if self.units(CYBERNETICSCORE).ready.exists and self.can_afford(RESEARCH_WARPGATE) and not self.researched_warpgate:
             ccore = self.units(CYBERNETICSCORE).ready.first
             await self.do(ccore(RESEARCH_WARPGATE))
             self.researched_warpgate = True
+
+            if self.verbose:
+                print('%6.2f researching warpgate' % (self.time))
+
+    async def manage_forge_upgrades(self):
+        for forge in self.units(FORGE).ready.noqueue:
+            abilities = await self.get_available_abilities(forge)
+
+            for upgrade_type in self.forge_research_priority:
+                for upgrade in self.upgrades[upgrade_type]:
+                    sys.stdout.flush()
+                    if upgrade in abilities and self.can_afford(upgrade):
+                        if self.verbose:
+                            print('%6.2f researching %s' % (self.time, self.upgrade_names[upgrade]))
+
+                        await self.do(forge(upgrade))
+                        break
 
     async def build_workers(self):
         nexus = self.units(NEXUS).ready

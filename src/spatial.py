@@ -50,6 +50,31 @@ class UnitMicro:
         await self.bot.do(self.unit.attack(target))
 
 
+class EventManager:
+    def __init__(self):
+        self.events = []
+
+    def add_event(self, callback, time_inverval):
+        self.events.append({
+            'callback': callback,
+            'time_inverval': time_inverval,
+            'time': 0})
+
+    def get_current_events(self, current_time):
+        events_to_run = []
+
+        for event in self.events:
+            callback = event['callback']
+            time_inverval = event['time_inverval']
+            time = event['time']
+
+            if current_time - time > time_inverval:
+                event['time'] = current_time
+                events_to_run.append(callback)
+
+        return events_to_run
+
+
 class SpatialLlama(sc2.BotAI):
     def __init__(self):
         self.verbose = True
@@ -72,6 +97,8 @@ class SpatialLlama(sc2.BotAI):
 
         self.start_forge_after = 240  # seconds - 4min
         self.forge_research_priority = ['ground_weapons', 'shield']
+
+        self.event_manager = EventManager()
 
         self.upgrades = {
             'ground_weapons': [
@@ -104,40 +131,28 @@ class SpatialLlama(sc2.BotAI):
         print('%6.2f Rise and shine' % (0))
         self.map_size = self.game_info.map_size
 
+        # TODO Tweak these values
+        self.event_manager.add_event(self.distribute_workers, 15)
+        self.event_manager.add_event(self.manage_upgrades, 5)
+        self.event_manager.add_event(self.build_workers, 5)
+        self.event_manager.add_event(self.manage_supply, 1)
+        self.event_manager.add_event(self.build_vespene, 5)
+        self.event_manager.add_event(self.build_structures, 5)
+        self.event_manager.add_event(self.build_army, 2)
+        self.event_manager.add_event(self.scout_controller, 7)
+        self.event_manager.add_event(self.micro_controller, 1)
+        self.event_manager.add_event(self.defend, 2)
+        self.event_manager.add_event(self.attack, 3)
+
     async def on_step(self, iteration):
         sys.stdout.flush()
 
         if iteration == 0:  # Do nothing on the first iteration to avoid
             return          # everything being done at the same time
 
-        if iteration % 121 == 0:
-            await self.distribute_workers()
-
-        if iteration % 37 == 0:
-            await self.manage_upgrades()
-
-        if iteration % 7 == 0:
-            await self.build_workers()
-
-        if iteration % 23 == 0:
-            await self.manage_supply()
-
-        if iteration % 31 == 0:
-            await self.build_vespene()
-
-        if iteration % 11 == 0:
-            await self.build_structures()
-
-        if iteration % 13 == 0:
-            await self.build_army()
-
-        if iteration % 17 == 0:
-            await self.scout_controller()
-            await self.micro_controller()
-
-        if iteration % 41 == 0:
-            await self.defend()
-            await self.attack()
+        events = self.event_manager.get_current_events(self.time)
+        for event in events:
+            await event()
 
     async def micro_controller(self):
         for unit in self.attacking_units:

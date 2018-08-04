@@ -15,6 +15,7 @@ from armymanager import ArmyManager
 class SpatialLlama(sc2.BotAI):
     def __init__(self):
         self.verbose = True
+        self.visual_debug = True
 
         # Control
         self.want_to_expand = False
@@ -24,6 +25,7 @@ class SpatialLlama(sc2.BotAI):
         self.army_manager = ArmyManager(bot=self)
         self.attack_target = None
         self.units_available_for_attack = {ZEALOT: 'ZEALOT', STALKER: 'STALKER'}
+        self.minimum_army_size = 15
 
         # Defense stuff
         self.threat_proximity = 20
@@ -194,20 +196,27 @@ class SpatialLlama(sc2.BotAI):
                     await self.do(unit.attack(target.position))
 
     async def attack(self):
-        # Attack towards enemy spawn position
-
         total_units = 0
         for unit_type in self.units_available_for_attack.keys():
             total_units += self.units(unit_type).idle.amount
 
-        if total_units > 15 and self.army_manager.army_size() == 0:
-            print('%6.2f Attacking with %d units' % (self.time, total_units))
+        if total_units >= self.minimum_army_size:
+            if self.army_manager.army_size() == 0:
+                for unit_type in self.units_available_for_attack.keys():
+                    for unit in self.units(unit_type).idle:
+                        self.army_manager.add(unit.tag)
 
-            for unit_type in self.units_available_for_attack.keys():
-                for unit in self.units(unit_type).idle:
-                    self.army_manager.add(unit.tag)
+                await self.army_manager.group_at_map_center(wait_for_n_units=total_units - 1, timeout=30, move_towards_position=self.enemy_start_locations[0])
 
-            await self.army_manager.group_at_map_center(wait_for_n_units=total_units - 1, timeout=30, move_towards_position=self.enemy_start_locations[0])
+                if self.verbose:
+                    print('%6.2f Attacking with %d units' % (self.time, total_units))
+            else:
+                for unit_type in self.units_available_for_attack.keys():
+                    for unit in self.units(unit_type).idle:
+                        self.army_manager.add(unit.tag, options={'reinforcement': True})
+
+                if self.verbose:
+                    print('%6.2f reinforcing with %d units' % (self.time, total_units))
 
     async def build_army(self):
         if not self.can('build_army'):
@@ -385,18 +394,27 @@ class SpatialLlama(sc2.BotAI):
                     await self.do(worker.build(ASSIMILATOR, vg))
 
     async def debug(self):
+        if not self.visual_debug:
+            return
+
+        # Setup and info
+
         font_size = 18
 
         total_units = 0
         for unit_type in self.units_available_for_attack.keys():
             total_units += self.units(unit_type).idle.amount
 
+        # Text
+
         messages = [
-            '  n_workers: %3d' % self.units(PROBE).amount,
-            '  n_zealots: %3d' % self.units(ZEALOT).amount,
-            ' n_stalkers: %3d' % self.units(STALKER).amount,
-            '  idle_army: %3d' % total_units,
-            '  army_size: %3d' % self.army_manager.army_size(),
+            '       n_workers: %3d' % self.units(PROBE).amount,
+            '       n_zealots: %3d' % self.units(ZEALOT).amount,
+            '      n_stalkers: %3d' % self.units(STALKER).amount,
+            '       idle_army: %3d' % total_units,
+            '       army_size: %3d' % self.army_manager.army_size(),
+            '     ememy_units: %3d' % self.known_enemy_units.amount,
+            'ememy_structures: %3d' % self.known_enemy_structures.amount,
         ]
 
         if self.army_manager.leader is not None:
@@ -409,10 +427,36 @@ class SpatialLlama(sc2.BotAI):
             self._client.debug_text_screen(message, pos=(0.001, y), size=font_size)
             y += inc
 
-        leader_unit = self.units.find_by_tag(self.army_manager.leader)
-        if leader_unit is not None:
-            self._client.debug_sphere_out(leader_unit, r=1, color=(255, 0, 0))
+        # Spheres
 
+        leader_tag = self.army_manager.leader
+        for soldier_tag in self.army_manager.soldiers:
+            soldier_unit = self.units.find_by_tag(soldier_tag)
+
+            if soldier_unit is not None:
+                if soldier_tag == leader_tag:
+                    self._client.debug_sphere_out(soldier_unit, r=1, color=(255, 0, 0))
+                else:
+                    self._client.debug_sphere_out(soldier_unit, r=1, color=(0, 0, 255))
+
+        # Lines
+
+        if self.army_manager.army_size() > 0:
+            leader_tag = self.army_manager.leader
+            leader_unit = self.units.find_by_tag(leader_tag)
+
+            for soldier_tag in self.army_manager.soldiers:
+                if soldier_tag == leader_tag:
+                    continue
+
+                soldier_unit = self.units.find_by_tag(soldier_tag)
+                if soldier_unit is not None:
+                    leader_tag = self.army_manager.leader
+                    leader_unit = self.units.find_by_tag(leader_tag)
+                    if leader_unit is not None:
+                        self._client.debug_line_out(leader_unit, soldier_unit, color=(0, 255, 255))
+
+        # Sens the debug info to the game
         await self._client.send_debug()
 
     def select_target(self, state):

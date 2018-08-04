@@ -1,4 +1,5 @@
 from unitmicro import UnitMicro
+from random import sample
 
 
 class ArmyManager:
@@ -20,11 +21,14 @@ class ArmyManager:
         self.group_timeout_counting = False
         self.radius_for_regroup = 10
 
+        self.actions_for_next_step = []
+
     def init(self):
         self.map_center = self.bot.game_info.map_center
 
-    def add(self, unit_tag):
-        self.soldiers[unit_tag] = self.bot.units.find_by_tag(unit_tag)
+    def add(self, unit_tag, options={}):
+        self.soldiers[unit_tag] = options
+
         if self.leader is None:
             self.leader = unit_tag
 
@@ -34,22 +38,51 @@ class ArmyManager:
     def update_soldier_status(self):
         tags_to_delete = []
 
+        leader_tag = self.leader
+        leader_unit = self.bot.units.find_by_tag(leader_tag)
+
         for soldier_tag in self.soldiers:
             soldier_unit = self.bot.units.find_by_tag(soldier_tag)
 
             if soldier_unit is None:
                 tags_to_delete.append(soldier_tag)
             else:
-                self.soldiers[soldier_tag] = self.bot.get_unit_info(soldier_unit, field='all')
+                if 'reinforcement' in self.soldiers[soldier_tag].keys() and leader_unit is not None:
+                    self.actions_for_next_step.append(soldier_unit.attack(leader_unit.position))
+                    self.soldiers[soldier_tag].pop('reinforcement')
+
+                if soldier_unit.is_idle:
+                    leader_tag = self.leader
+                    leader_unit = self.bot.units.find_by_tag(leader_tag)
+
+                    if soldier_tag != leader_tag:
+                        self.actions_for_next_step.append(soldier_unit.attack(leader_unit.position))
+                    else:
+                        self.actions_for_next_step.append(soldier_unit.attack(self.get_something_to_attack()))
 
         for tag in tags_to_delete:
             self.soldiers.pop(tag)
 
+    def get_something_to_attack(self):
+        if self.bot.known_enemy_units.amount > 0:
+            return self.bot.known_enemy_units.random
+
+        if self.bot.known_enemy_structures.amount > 0:
+            return self.bot.known_enemy_structures.random
+
+        return sample(list(self.bot.expansion_locations), k=1)[0]
+
     def update_leader(self):
         self.update_soldier_status()
 
-        if self.leader not in self.soldiers:         # If leader died then
-            self.leader = next(iter(self.soldiers))  # this picks the "first" unit as a leader
+        if self.army_size() > 0:
+            if self.leader not in self.soldiers:
+                self.leader = next(iter(self.soldiers))
+
+                if self.verbose:
+                    print('%6.2f leader died, found new one' % (self.bot.time))
+        else:
+            self.leader = None
 
     def finished_regrouping(self):
         if not self.waiting_for_group:
@@ -88,6 +121,7 @@ class ArmyManager:
 
     async def step(self):
         self.update_soldier_status()
+        self.update_leader()
 
         actions = []
 
@@ -111,4 +145,8 @@ class ArmyManager:
                     actions.append(soldier_unit.attack(self.map_center))
                 actions.append(soldier_unit.attack(self.move_towards_position))
 
-        await self.bot.do_actions(actions)
+        self.actions_for_next_step.extend(actions)
+
+        await self.bot.do_actions(self.actions_for_next_step)
+
+        self.actions_for_next_step = []

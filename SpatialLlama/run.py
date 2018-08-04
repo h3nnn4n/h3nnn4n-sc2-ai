@@ -1,4 +1,5 @@
-import sc2, sys
+import sc2
+import sys
 from __init__ import run_ladder_game
 from sc2 import Race, Difficulty
 from sc2.player import Bot, Computer

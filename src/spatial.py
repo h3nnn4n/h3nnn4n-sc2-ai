@@ -4,9 +4,11 @@ import sc2
 from sc2 import Race, Difficulty
 from sc2.constants import *
 from sc2.player import Bot, Computer
-from sc2.position import Point2
-from unitmicro import UnitMicro
+from sc2.unit import Unit
+from sc2.units import Units
+from sc2.position import Point2, Point3
 from eventmanager import EventManager
+from armymanager import ArmyManager
 
 
 class SpatialLlama(sc2.BotAI):
@@ -18,7 +20,7 @@ class SpatialLlama(sc2.BotAI):
         self.researched_warpgate = False
 
         # Attack stuff
-        self.attacking_units = {}
+        self.army_manager = ArmyManager(bot=self)
         self.attack_target = None
         self.units_available_for_attack = {ZEALOT: 'ZEALOT', STALKER: 'STALKER'}
 
@@ -74,6 +76,8 @@ class SpatialLlama(sc2.BotAI):
         print('%6.2f Rise and shine' % (0))
         self.map_size = self.game_info.map_size
 
+        self.army_manager.init()
+
         # TODO Tweak these values
         self.event_manager.add_event(self.distribute_workers, 15)
         self.event_manager.add_event(self.manage_upgrades, 5)
@@ -84,7 +88,7 @@ class SpatialLlama(sc2.BotAI):
         self.event_manager.add_event(self.build_nexus, 5)
         self.event_manager.add_event(self.build_army, 2)
         self.event_manager.add_event(self.scout_controller, 7)
-        self.event_manager.add_event(self.micro_controller, 1)
+        self.event_manager.add_event(self.army_controller, 1)
         self.event_manager.add_event(self.defend, 2)
         self.event_manager.add_event(self.attack, 3)
 
@@ -98,9 +102,8 @@ class SpatialLlama(sc2.BotAI):
         for event in events:
             await event()
 
-    async def micro_controller(self):
-        for _, controller in self.attacking_units.items():
-            await controller.update()
+    async def army_controller(self):
+        await self.army_manager.step()
 
     async def scout_controller(self):
         current_time = self.time
@@ -194,14 +197,14 @@ class SpatialLlama(sc2.BotAI):
         for unit_type in self.units_available_for_attack.keys():
             total_units += self.units(unit_type).idle.amount
 
-        if total_units > 15:
+        if total_units > 2:
             print('%6.2f Attacking with %d units' % (self.time, total_units))
 
             for unit_type in self.units_available_for_attack.keys():
                 for unit in self.units(unit_type).idle:
-                    self.attacking_units[unit.tag] = UnitMicro(unit.tag, unit_type, self)
-                    self.attacking_units[unit.tag].move_towards(self.enemy_start_locations[0])
-                    await self.attacking_units[unit.tag].group_at_map_center(wait_for_n_units=total_units - 1, timeout=30)
+                    self.army_manager.add(unit.tag)
+
+            await self.army_manager.group_at_map_center(wait_for_n_units=total_units - 1, timeout=30, move_towards_position=self.enemy_start_locations[0])
 
     async def build_army(self):
         if not self.can('build_army'):
@@ -418,7 +421,22 @@ class SpatialLlama(sc2.BotAI):
         self.console()
 
     def console(self):
-        from IPython import embed; embed()
+        from IPython.terminal.embed import InteractiveShellEmbed
+        ipshell = InteractiveShellEmbed.instance()
+        ipshell()
+
+    def get_unit_info(self, unit, field="food_required"):
+        assert isinstance(unit, (Unit, UnitTypeId))
+
+        if isinstance(unit, Unit):
+            unit = unit._type_data._proto
+        else:
+            unit = self._game_data.units[unit.value]._proto
+
+        if hasattr(unit, field):
+            return getattr(unit, field)
+        else:
+            return None
 
 
 def main():

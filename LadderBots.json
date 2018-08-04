@@ -1,0 +1,10 @@
+{
+	"Bots": {
+		"CreepyBot": {
+			"Race": "Protoss",
+			"Type": "Python",
+			"RootPath": "SpatialLlama",
+			"FileName": "run.py"
+		}
+	}
+}

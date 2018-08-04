@@ -10,6 +10,7 @@ from sc2.units import Units
 from sc2.position import Point2, Point3
 from eventmanager import EventManager
 from armymanager import ArmyManager
+from llamacontroller import LlamaControler
 
 
 class SpatialLlama(sc2.BotAI):
@@ -17,7 +18,10 @@ class SpatialLlama(sc2.BotAI):
         self.verbose = False
         self.visual_debug = False
 
-        # Control
+        # Llama Stuff
+        self.llama_controller = LlamaControler()
+
+        # Control Stuff
         self.want_to_expand = False
         self.researched_warpgate = False
 
@@ -108,7 +112,9 @@ class SpatialLlama(sc2.BotAI):
         sys.stdout.flush()
 
         if iteration == 0:  # Do nothing on the first iteration to avoid
-            return          # everything being done at the same time
+                            # everything being done at the same time
+            await self.chat_send(self.llama_controller.get_random_llama_fact())
+            return
 
         events = self.event_manager.get_current_events(self.time)
         for event in events:

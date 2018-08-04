@@ -12,7 +12,7 @@ from eventmanager import EventManager
 class SpatialLlama(sc2.BotAI):
     def __init__(self):
         self.verbose = True
-        self.expanded = False
+        self.want_to_expand = False
         self.researched_warpgate = False
         self.threat_proximity = 20
 
@@ -70,8 +70,9 @@ class SpatialLlama(sc2.BotAI):
         self.event_manager.add_event(self.manage_upgrades, 5)
         self.event_manager.add_event(self.build_workers, 5)
         self.event_manager.add_event(self.manage_supply, 1)
-        self.event_manager.add_event(self.build_vespene, 5)
+        self.event_manager.add_event(self.build_assimilator, 5)
         self.event_manager.add_event(self.build_structures, 5)
+        self.event_manager.add_event(self.build_nexus, 5)
         self.event_manager.add_event(self.build_army, 2)
         self.event_manager.add_event(self.scout_controller, 7)
         self.event_manager.add_event(self.micro_controller, 1)
@@ -189,6 +190,8 @@ class SpatialLlama(sc2.BotAI):
                     self.attacking_units[unit.tag] = UnitMicro(unit.tag, unit_type, self)
 
     async def build_army(self):
+        if not self.can('build_army'):
+            return
 
         # Iterates over all gateways
         for gateway in self.units(GATEWAY).ready.noqueue:
@@ -235,6 +238,9 @@ class SpatialLlama(sc2.BotAI):
                             continue
 
     async def build_structures(self):
+        if not self.can('build_structures'):
+            return
+
         # Only start building main structures if there is
         # at least one pylon
         if not self.units(PYLON).ready.exists:
@@ -253,8 +259,9 @@ class SpatialLlama(sc2.BotAI):
         # Build the cybernetics core after the first gateway is ready
         if self.can_afford(CYBERNETICSCORE) and self.units(CYBERNETICSCORE).amount == 0 and self.units(GATEWAY).ready:
             if self.verbose:
-                print('%6.2f starting first gateway' % (self.time))
+                print('%6.2f starting cybernetics' % (self.time))
             await self.build(CYBERNETICSCORE, near=pylon)
+            self.want_to_expand = True
 
         # Build more gateways after the cybernetics core is ready
         if self.can_afford(GATEWAY) and number_of_gateways < 4 and self.units(CYBERNETICSCORE).ready:
@@ -262,24 +269,23 @@ class SpatialLlama(sc2.BotAI):
                 print('%6.2f starting more gateways' % (self.time))
             await self.build(GATEWAY, near=pylon)
 
-        # If there are at least 3 gateways then expand
-        if number_of_gateways >= 3:
-            if self.units(NEXUS).amount < 2 and not self.already_pending(NEXUS) and self.can_afford(NEXUS):
-                if self.verbose:
-                    print('%6.2f expanding' % (self.time))
-
-                await self.expand_now()
-                #location = await self.get_next_expansion()
-                #await self.build(NEXUS, near=location)
-
-                self.expanded = True
-
         # Build 2 forges
         if self.time > self.start_forge_after and self.units(FORGE).amount < 2:
             if self.can_afford(FORGE) and not self.already_pending(FORGE):
                 if self.verbose:
                     print('%6.2f building forge' % (self.time))
                 await self.build(FORGE, near=pylon)
+
+    async def build_nexus(self):
+        if not self.can('expand'):
+            return
+
+        if not self.already_pending(NEXUS) and self.can_afford(NEXUS):
+            if self.verbose:
+                print('%6.2f expanding' % (self.time))
+
+            await self.expand_now()
+            self.want_to_expand = False
 
     async def manage_upgrades(self):
         await self.manage_cyberbetics_upgrades()
@@ -336,7 +342,10 @@ class SpatialLlama(sc2.BotAI):
                         await self.build(PYLON, near=pos)
                         break
 
-    async def build_vespene(self):
+    async def build_assimilator(self):
+        if not self.can('build_assimilator'):
+            return
+
         if self.workers.amount < 16:
             return
 
@@ -351,6 +360,8 @@ class SpatialLlama(sc2.BotAI):
                     break
 
                 if not self.units(ASSIMILATOR).closer_than(1.0, vg).exists:
+                    if self.verbose:
+                        print('%6.2f building assimilator' % (self.time))
                     await self.do(worker.build(ASSIMILATOR, vg))
 
     def select_target(self, state):
@@ -376,6 +387,24 @@ class SpatialLlama(sc2.BotAI):
                 units_next_to_good_boy_pylon = units_next_to_candidate_pylon
 
         return good_boy_pylon
+
+    def can(self, what):
+        if what == 'build_army':
+            return not self.want_to_expand
+
+        if what == 'build_structures':
+            return not self.want_to_expand
+
+        if what == 'build_assimilator':
+            return not self.want_to_expand
+
+        if what == 'expand':
+            return self.want_to_expand
+
+        self.console()
+
+    def console(self):
+        from IPython import embed; embed()
 
 
 def main():

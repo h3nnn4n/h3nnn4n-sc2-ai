@@ -371,7 +371,7 @@ class SpatialLlama(sc2.BotAI):
         nexus = self.units(NEXUS).ready.noqueue
 
         if nexus and self.workers.amount < self.units(NEXUS).amount * 22 and self.workers.amount < self.maximum_workers:
-            if self.can_afford(PROBE):
+            if self.can_afford(PROBE) and self.supply_left > 2:
                 await self.do(nexus.random.train(PROBE))
 
     async def manage_supply(self):

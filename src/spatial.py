@@ -12,24 +12,32 @@ from eventmanager import EventManager
 class SpatialLlama(sc2.BotAI):
     def __init__(self):
         self.verbose = True
+
+        # Control
         self.want_to_expand = False
         self.researched_warpgate = False
-        self.threat_proximity = 20
 
+        # Attack stuff
         self.attacking_units = {}
         self.attack_target = None
         self.units_available_for_attack = {ZEALOT: 'ZEALOT', STALKER: 'STALKER'}
 
+        # Defense stuff
+        self.threat_proximity = 20
         self.defending_units = {}
-        self.defending_from = {}
         self.defend_around = [PYLON, NEXUS]
 
+        # Threat stuff stuff
+        self.defending_from = {}
+
+        # Scout stuff
         self.scouting_units = set()
         self.number_of_scouting_units = 2
         self.scout_interval = 30  # Seconds
         self.scout_timer = 0
         self.map_size = None
 
+        # Research stuff
         self.start_forge_after = 240  # seconds - 4min
         self.forge_research_priority = ['ground_weapons', 'shield']
 
@@ -192,6 +200,8 @@ class SpatialLlama(sc2.BotAI):
             for unit_type in self.units_available_for_attack.keys():
                 for unit in self.units(unit_type).idle:
                     self.attacking_units[unit.tag] = UnitMicro(unit.tag, unit_type, self)
+                    self.attacking_units[unit.tag].move_towards(self.enemy_start_locations[0])
+                    await self.attacking_units[unit.tag].group_at_map_center(wait_for_n_units=total_units - 1, timeout=30)
 
     async def build_army(self):
         if not self.can('build_army'):

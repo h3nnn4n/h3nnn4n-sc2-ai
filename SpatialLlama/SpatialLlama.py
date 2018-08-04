@@ -14,8 +14,8 @@ from armymanager import ArmyManager
 
 class SpatialLlama(sc2.BotAI):
     def __init__(self):
-        self.verbose = True
-        self.visual_debug = True
+        self.verbose = False
+        self.visual_debug = False
 
         # Control
         self.want_to_expand = False
@@ -82,7 +82,9 @@ class SpatialLlama(sc2.BotAI):
             }
 
     def on_start(self):
-        print('%6.2f Rise and shine' % (0))
+        if self.verbose:
+            print('%6.2f Rise and shine' % (0))
+
         self.map_size = self.game_info.map_size
 
         self.army_manager.init()
@@ -149,7 +151,8 @@ class SpatialLlama(sc2.BotAI):
                 idle_stalkers = self.units(STALKER).idle
 
                 if idle_stalkers.exists:
-                    print('%6.2f Scouting' % (self.time))
+                    if self.verbose:
+                        print('%6.2f Scouting' % (self.time))
 
                     # If there is no unit assigned to scouting
                     # the the idle unit furthest from the base
@@ -184,7 +187,8 @@ class SpatialLlama(sc2.BotAI):
                             new_threat_count += 1
 
                     if new_threat_count > 0:
-                        print('%6.2f found %d threats' % (self.time, new_threat_count))
+                        if self.verbose:
+                            print('%6.2f found %d threats' % (self.time, new_threat_count))
                         await self.target_enemy_unit(target_threat)
                         break
 
@@ -198,13 +202,15 @@ class SpatialLlama(sc2.BotAI):
         # Only sends 1 unit to attack a worker
         is_worker = target.type_id in [PROBE, SCV, DRONE]
 
-        print('%6.2f defending with %d units' % (self.time, total_units))
+        if self.verbose:
+            print('%6.2f defending with %d units' % (self.time, total_units))
 
         for unit_group in [zealots, stalkers]:
             for unit in unit_group:
                 if is_worker:
                     await self.do(unit.attack(target))
-                    print('     - target is a probe, sending a single unit')
+                    if self.verbose:
+                        print('     - target is a probe, sending a single unit')
                     return
                 else:
                     await self.do(unit.attack(target.position))
@@ -274,7 +280,8 @@ class SpatialLlama(sc2.BotAI):
                             placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
 
                             if placement is None:
-                                print("%6.2f can't place" % (self.time))
+                                if self.verbose:
+                                    print("%6.2f can't place" % (self.time))
                                 return
 
                             await self.do(warpgate.warp_in(STALKER, placement))

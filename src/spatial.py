@@ -22,6 +22,7 @@ class SpatialLlama(sc2.BotAI):
 
         self.defending_units = {}
         self.defending_from = {}
+        self.defend_around = [PYLON, NEXUS]
 
         self.scouting_units = set()
         self.number_of_scouting_units = 2
@@ -138,21 +139,24 @@ class SpatialLlama(sc2.BotAI):
                     #print('     - no units to scout')
 
     async def defend(self):
-        # Attacks units that get too close to a nexus or a pylon
+        # Attacks units that get too close to import units
+        for structure_type in self.defend_around:
+            for structure in self.units(structure_type):
+                threats = self.known_enemy_units.closer_than(self.threat_proximity, structure.position)
+                if threats.exists:
+                    target_threat = None
+                    new_threat_count = 0
 
-        for pylon in self.units(PYLON):
-            threats = self.known_enemy_units.closer_than(self.threat_proximity, pylon.position)
-            if threats.exists:
-                print('%6.2f found %d threats' % (self.time, threats.amount))
-                await self.target_enemy_unit(threats.first)
-                break
+                    for threat in threats:
+                        if threat.tag not in self.defending_from:
+                            self.defending_from[threat.tag] = None
+                            target_threat = threat
+                            new_threat_count += 1
 
-        for nexus in self.units(NEXUS):
-            threats = self.known_enemy_units.closer_than(self.threat_proximity, nexus.position)
-            if threats.exists:
-                print('%6.2f found %d threats' % (self.time, threats.amount))
-                await self.target_enemy_unit(threats.first)
-                break
+                    if new_threat_count > 0:
+                        print('%6.2f found %d threats' % (self.time, new_threat_count))
+                        await self.target_enemy_unit(target_threat)
+                        break
 
     async def target_enemy_unit(self, target):
         # sends all idle units to attack an enemy unit

@@ -88,19 +88,19 @@ class SpatialLlama(sc2.BotAI):
         self.army_manager.init()
 
         # TODO Tweak these values
-        self.event_manager.add_event(self.distribute_workers, 15)
-        self.event_manager.add_event(self.manage_upgrades, 5)
-        self.event_manager.add_event(self.build_workers, 5)
+        self.event_manager.add_event(self.distribute_workers, 5)
+        self.event_manager.add_event(self.manage_upgrades, 5.3)
+        self.event_manager.add_event(self.build_workers, 2.25)
         self.event_manager.add_event(self.manage_supply, 1)
-        self.event_manager.add_event(self.build_assimilator, 5)
-        self.event_manager.add_event(self.build_structures, 5)
+        self.event_manager.add_event(self.build_assimilator, 2.5)
+        self.event_manager.add_event(self.build_structures, 2.4)
         self.event_manager.add_event(self.build_nexus, 5)
-        self.event_manager.add_event(self.build_army, 2)
+        self.event_manager.add_event(self.build_army, 0.9)
         self.event_manager.add_event(self.scout_controller, 7)
-        self.event_manager.add_event(self.army_controller, 1)
+        self.event_manager.add_event(self.army_controller, 1.1)
         self.event_manager.add_event(self.defend, 2)
         self.event_manager.add_event(self.attack, 3)
-        self.event_manager.add_event(self.expansion_controller, 10)
+        self.event_manager.add_event(self.expansion_controller, 5)
 
     async def on_step(self, iteration):
         sys.stdout.flush()

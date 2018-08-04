@@ -89,8 +89,8 @@ class SpatialLlama(sc2.BotAI):
             await event()
 
     async def micro_controller(self):
-        for unit in self.attacking_units:
-            await unit.update()
+        for _, controller in self.attacking_units.items():
+            await controller.update()
 
     async def scout_controller(self):
         current_time = self.time

@@ -55,6 +55,9 @@ class ArmyManager:
                     leader_tag = self.leader
                     leader_unit = self.bot.units.find_by_tag(leader_tag)
 
+                    if leader_unit is None:
+                        continue
+
                     if soldier_tag != leader_tag:
                         self.actions_for_next_step.append(soldier_unit.attack(leader_unit.position))
                     else:

@@ -16,12 +16,12 @@ class SpatialLlama(sc2.BotAI):
         self.researched_warpgate = False
         self.threat_proximity = 20
 
-        self.attacking_units = set()
+        self.attacking_units = {}
         self.attack_target = None
         self.units_available_for_attack = {ZEALOT: 'ZEALOT', STALKER: 'STALKER'}
 
-        self.defending_units = set()
-        self.defending_from = set()
+        self.defending_units = {}
+        self.defending_from = {}
 
         self.scouting_units = set()
         self.number_of_scouting_units = 2
@@ -179,15 +179,14 @@ class SpatialLlama(sc2.BotAI):
 
         total_units = 0
         for unit_type in self.units_available_for_attack.keys():
-            total_units += self.units(unit_type).amount
+            total_units += self.units(unit_type).idle.amount
 
         if total_units > 15:
             print('%6.2f Attacking with %d units' % (self.time, total_units))
 
             for unit_type in self.units_available_for_attack.keys():
-                for unit in self.units(unit_type):
-                    self.attacking_units.add(UnitMicro(unit.tag, unit_type, self))
-                    await self.do(unit.attack(self.select_target(self.state)))
+                for unit in self.units(unit_type).idle:
+                    self.attacking_units[unit.tag] = UnitMicro(unit.tag, unit_type, self)
 
     async def build_army(self):
 

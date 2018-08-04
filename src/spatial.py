@@ -1,3 +1,4 @@
+import numpy as np
 import random
 import sys
 import sc2
@@ -102,6 +103,8 @@ class SpatialLlama(sc2.BotAI):
         for event in events:
             await event()
 
+        await self.debug()
+
     async def army_controller(self):
         await self.army_manager.step()
 
@@ -197,7 +200,7 @@ class SpatialLlama(sc2.BotAI):
         for unit_type in self.units_available_for_attack.keys():
             total_units += self.units(unit_type).idle.amount
 
-        if total_units > 2:
+        if total_units > 15 and self.army_manager.army_size() == 0:
             print('%6.2f Attacking with %d units' % (self.time, total_units))
 
             for unit_type in self.units_available_for_attack.keys():
@@ -380,6 +383,37 @@ class SpatialLlama(sc2.BotAI):
                     if self.verbose:
                         print('%6.2f building assimilator' % (self.time))
                     await self.do(worker.build(ASSIMILATOR, vg))
+
+    async def debug(self):
+        font_size = 18
+
+        total_units = 0
+        for unit_type in self.units_available_for_attack.keys():
+            total_units += self.units(unit_type).idle.amount
+
+        messages = [
+            '  n_workers: %3d' % self.units(PROBE).amount,
+            '  n_zealots: %3d' % self.units(ZEALOT).amount,
+            ' n_stalkers: %3d' % self.units(STALKER).amount,
+            '  idle_army: %3d' % total_units,
+            '  army_size: %3d' % self.army_manager.army_size(),
+        ]
+
+        if self.army_manager.leader is not None:
+            messages.append('     leader: %3d' % self.army_manager.leader)
+
+        y = 0
+        inc = 0.025
+
+        for message in messages:
+            self._client.debug_text_screen(message, pos=(0.001, y), size=font_size)
+            y += inc
+
+        leader_unit = self.units.find_by_tag(self.army_manager.leader)
+        if leader_unit is not None:
+            self._client.debug_sphere_out(leader_unit, r=1, color=(255, 0, 0))
+
+        await self._client.send_debug()
 
     def select_target(self, state):
         if self.known_enemy_structures.exists:

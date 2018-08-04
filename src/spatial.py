@@ -37,10 +37,16 @@ class SpatialLlama(sc2.BotAI):
 
         # Scout stuff
         self.scouting_units = set()
-        self.number_of_scouting_units = 2
+        self.number_of_scouting_units = 3
         self.scout_interval = 30  # Seconds
         self.scout_timer = 0
         self.map_size = None
+
+        # Expansion and macro stuff
+        self.auto_expand_after = 300 # 5 Minutes
+        self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
+        self.maximum_workers = 80
+        self.gateways_per_nexus = 4
 
         # Research stuff
         self.start_forge_after = 240  # seconds - 4min
@@ -94,6 +100,7 @@ class SpatialLlama(sc2.BotAI):
         self.event_manager.add_event(self.army_controller, 1)
         self.event_manager.add_event(self.defend, 2)
         self.event_manager.add_event(self.attack, 3)
+        self.event_manager.add_event(self.expansion_controller, 10)
 
     async def on_step(self, iteration):
         sys.stdout.flush()
@@ -106,6 +113,13 @@ class SpatialLlama(sc2.BotAI):
             await event()
 
         await self.debug()
+
+    async def expansion_controller(self):
+        if self.time > self.auto_expand_after:
+            number_of_minerals = sum([self.state.mineral_field.closer_than(10, x).amount for x in self.townhalls])
+
+            if number_of_minerals <= self.auto_expand_mineral_threshold:
+                self.want_to_expand = True
 
     async def army_controller(self):
         await self.army_manager.step()
@@ -293,7 +307,10 @@ class SpatialLlama(sc2.BotAI):
             self.want_to_expand = True
 
         # Build more gateways after the cybernetics core is ready
-        if self.can_afford(GATEWAY) and number_of_gateways < 4 and self.units(CYBERNETICSCORE).ready:
+        if self.can_afford(GATEWAY) and self.units(CYBERNETICSCORE).ready and (
+                (number_of_gateways < 4 and self.units(NEXUS).amount <= 2) or
+                (number_of_gateways <= self.units(NEXUS).amount * self.gateways_per_nexus)
+            ):
             if self.verbose:
                 print('%6.2f starting more gateways' % (self.time))
             await self.build(GATEWAY, near=pylon)
@@ -304,6 +321,13 @@ class SpatialLlama(sc2.BotAI):
                 if self.verbose:
                     print('%6.2f building forge' % (self.time))
                 await self.build(FORGE, near=pylon)
+
+        # Build twilight council
+        if self.units(FORGE).ready.amount >= 2 and self.units(TWILIGHTCOUNCIL).amount == 0:
+            if self.can_afford(TWILIGHTCOUNCIL) and not self.already_pending(TWILIGHTCOUNCIL):
+                if self.verbose:
+                    print('%6.2f building twilight council' % (self.time))
+                await self.build(TWILIGHTCOUNCIL, near=pylon)
 
     async def build_nexus(self):
         if not self.can('expand'):
@@ -344,10 +368,9 @@ class SpatialLlama(sc2.BotAI):
                         break
 
     async def build_workers(self):
-        nexus = self.units(NEXUS).ready
-        nexus = nexus.noqueue
+        nexus = self.units(NEXUS).ready.noqueue
 
-        if nexus and self.workers.amount < self.units(NEXUS).amount * 22:
+        if nexus and self.workers.amount < self.units(NEXUS).amount * 22 and self.workers.amount < self.maximum_workers:
             if self.can_afford(PROBE):
                 await self.do(nexus.random.train(PROBE))
 
@@ -405,6 +428,8 @@ class SpatialLlama(sc2.BotAI):
         for unit_type in self.units_available_for_attack.keys():
             total_units += self.units(unit_type).idle.amount
 
+        number_of_minerals = sum([self.state.mineral_field.closer_than(10, x).amount for x in self.townhalls])
+
         # Text
 
         messages = [
@@ -415,6 +440,7 @@ class SpatialLlama(sc2.BotAI):
             '       army_size: %3d' % self.army_manager.army_size(),
             '     ememy_units: %3d' % self.known_enemy_units.amount,
             'ememy_structures: %3d' % self.known_enemy_structures.amount,
+            '   minerals_left: %3d' % number_of_minerals,
         ]
 
         if self.army_manager.leader is not None:

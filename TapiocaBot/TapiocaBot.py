@@ -10,8 +10,10 @@ from sc2.player import Bot, Computer
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.position import Point2, Point3
-from eventmanager import EventManager
-from armymanager import ArmyManager
+
+from event_manager import EventManager
+from army_manager import ArmyManager
+from build_order_manager import BuildOrderManager
 
 
 class TapiocaBot(sc2.BotAI):
@@ -59,6 +61,11 @@ class TapiocaBot(sc2.BotAI):
         self.forge_research_priority = ['ground_weapons', 'shield']
 
         self.event_manager = EventManager()
+        self.build_order_manager = BuildOrderManager(
+            build_order='two_gate_fast_expand',
+            verbose=self.verbose,
+            bot=self
+        )
 
         self.upgrades = {
             'ground_weapons': [
@@ -107,7 +114,7 @@ class TapiocaBot(sc2.BotAI):
         #self.event_manager.add_event(self.defend, 2)
         #self.event_manager.add_event(self.attack, 3)
         #self.event_manager.add_event(self.expansion_controller, 5)
-        self.event_manager.add_event(self.two_gate_fast_expand, 0.5)
+        self.event_manager.add_event(self.build_order_manager.step, 0.5)
         self.event_manager.add_event(self.morph_gateways_into_warpgates, 1.0)
 
     async def on_step(self, iteration):
@@ -124,187 +131,6 @@ class TapiocaBot(sc2.BotAI):
             await event()
 
         await self.debug()
-
-    async def two_gate_fast_expand(self):
-        # TODO chrono nexus
-
-        nexus = self.units(NEXUS).ready.first
-        nexus_noqueue = self.units(NEXUS).ready.noqueue
-
-        pylon_count = self.units(PYLON).ready.amount
-        pylon_pending = self.already_pending(PYLON)
-
-        probe_count = self.units(PROBE).ready.amount
-        probe_pending = self.already_pending(PROBE)
-
-        gateway_count = self.units(GATEWAY).amount
-        gateway_pending = self.already_pending(GATEWAY)
-
-        cybernetics_count = self.units(CYBERNETICSCORE).amount
-        cybernetics_pending = self.already_pending(CYBERNETICSCORE)
-
-        # Chrono
-        nexus_abilities = await self.get_available_abilities(nexus)
-        if EFFECT_CHRONOBOOSTENERGYCOST in nexus_abilities:
-            if not nexus.has_buff(CHRONOBOOSTENERGYCOST):
-                if self.chronos_on_nexus < 2:
-                    self.chronos_on_nexus += 1
-                    await self.do(nexus(EFFECT_CHRONOBOOSTENERGYCOST, nexus))
-                else:
-                    cybernetics_core = self.units(CYBERNETICSCORE).ready
-                    if cybernetics_core.exists:
-                        await self.do(nexus(EFFECT_CHRONOBOOSTENERGYCOST, cybernetics_core.first))
-
-        # Probe until 14
-        if probe_count < 14 and not probe_pending:
-            if self.can_afford(PROBE) and nexus_noqueue.exists:
-                await self.do(nexus.train(PROBE))
-                if self.verbose:
-                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
-
-        # 14 Pylon
-        if probe_count == 14 and pylon_count == 0 and not pylon_pending:
-            if self.can_afford(PYLON):
-                await self.build_pylon()
-                if self.verbose:
-                    print('%8.2f %3d Building Pylon' % (self.time, self.supply_used))
-
-        # Probe until 16
-        if probe_count < 16 and not probe_pending and self.units(PYLON).amount > 0:
-            if self.can_afford(PROBE) and nexus_noqueue.exists:
-                await self.do(nexus.train(PROBE))
-                if self.verbose:
-                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
-
-        # 16 Gateway
-        if probe_count == 16 and pylon_count >= 1 and gateway_count == 0 and not gateway_pending:
-            if self.can_afford(GATEWAY):
-                pylon = self.units(PYLON).ready.random
-                await self.build(GATEWAY, near=pylon)
-                if self.verbose:
-                    print('%8.2f %3d Building Gateway' % (self.time, self.supply_used))
-
-        # @100% Gateway -> Cybernetics core
-        if self.units(GATEWAY).ready.amount == 1 and not cybernetics_pending and cybernetics_count == 0:
-            if self.can_afford(CYBERNETICSCORE):
-                pylon = self.units(PYLON).ready.random
-                await self.build(CYBERNETICSCORE, near=pylon)
-                if self.verbose:
-                    print('%8.2f %3d Building Cybernetics Core' % (self.time, self.supply_used))
-
-        # 16 and 17 Gas
-        if ((probe_count == 16 and self.units(ASSIMILATOR).amount == 0) or
-            (probe_count == 17 and self.units(ASSIMILATOR).amount == 1)) and self.units(GATEWAY).amount > 0:
-            if self.can_afford(ASSIMILATOR):
-                await self.build_assimilator()
-                if self.verbose:
-                    print('%8.2f %3d Building Assimilator' % (self.time, self.supply_used))
-
-        # 18 Gateway
-        if probe_count == 18 and pylon_count >= 1 and gateway_count == 1:
-            if self.can_afford(GATEWAY):
-                pylon = self.units(PYLON).ready.random
-                await self.build(GATEWAY, near=pylon)
-                if self.verbose:
-                    print('%8.2f %3d Building Gateway' % (self.time, self.supply_used))
-
-        # Probes until 21
-        if ((probe_count < 18 and self.units(GATEWAY).amount == 1) or
-            (probe_count < 21 and self.units(GATEWAY).amount == 2)) and not probe_pending:
-            if self.can_afford(PROBE) and nexus_noqueue.exists:
-                await self.do(nexus.train(PROBE))
-                if self.verbose:
-                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
-
-        # 21 Pylon
-        if probe_count == 21 and pylon_count == 1 and not pylon_pending:
-            if self.can_afford(PYLON):
-                await self.build_pylon()
-                if self.verbose:
-                    print('%8.2f %3d Building Pylon' % (self.time, self.supply_used))
-
-        # @100% Cybernetics core -> Research Warpgate
-        if self.units(CYBERNETICSCORE).ready.exists and self.can_afford(RESEARCH_WARPGATE) and not self.warpgate_started:
-            ccore = self.units(CYBERNETICSCORE).ready.first
-            await self.do(ccore(RESEARCH_WARPGATE))
-            self.warpgate_started = True
-            if self.verbose:
-                print('%8.2f %3d Researching Warpgate' % (self.time, self.supply_used))
-
-        # @100% Cybernetics core -> Build 2 adepts
-        if self.units(GATEWAY).ready.amount > 0 and self.adepts_warped_in < 2 and self.can_afford(ADEPT) and self.units(ADEPT).amount < 2:
-            for gateway in self.units(GATEWAY).ready.noqueue:
-                abilities = await self.get_available_abilities(gateway)
-                if self.can_afford(AbilityId.TRAIN_ADEPT) and AbilityId.TRAIN_ADEPT in abilities and self.can_afford(ADEPT):
-                    await self.do(gateway.train(ADEPT))
-                    self.adepts_warped_in += 1
-                    if self.verbose:
-                        print('%8.2f %3d Warping in an Adept' % (self.time, self.supply_used))
-                    break
-
-        # @2 Adepts -> 2 Stalkers
-        if self.units(GATEWAY).ready.amount > 0 and self.stalkers_warped_in < 2 and self.adepts_warped_in >= 2 and self.can_afford(STALKER) and self.units(ADEPT).amount < 2 and self.units(STALKER).amount < 2:
-            for gateway in self.units(GATEWAY).ready.noqueue:
-                abilities = await self.get_available_abilities(gateway)
-                if self.can_afford(AbilityId.GATEWAYTRAIN_STALKER) and AbilityId.GATEWAYTRAIN_STALKER in abilities and self.can_afford(STALKER):
-                    await self.do(gateway.train(STALKER))
-                    self.stalkers_warped_in += 1
-                    if self.verbose:
-                        print('%8.2f %3d Warping in an Stalker' % (self.time, self.supply_used))
-                    break
-
-        # After the units have been warped in keep making workers
-        if self.stalkers_warped_in >= 2 and self.adepts_warped_in >= 2 and self.supply_used < 31 and not probe_pending:
-            if self.can_afford(PROBE) and nexus_noqueue.exists:
-                await self.do(nexus.train(PROBE))
-                if self.verbose:
-                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
-
-        # 31 nexus
-        if self.supply_left == 0 and self.supply_cap == 31 and self.units(NEXUS).amount == 1 and not self.already_pending(NEXUS):
-            if self.can_afford(NEXUS):
-                await self.expand_now()
-                if self.verbose:
-                    print('%8.2f %3d Expanding' % (self.time, self.supply_used))
-
-        # 31 pylon
-        if self.supply_left == 0 and self.supply_cap == 31 and self.already_pending(NEXUS) and pylon_count == 2 and not pylon_pending:
-            natural_nexus = self.units(NEXUS).not_ready
-            if natural_nexus.exists and self.can_afford(PYLON):
-                await self.build(PYLON, near=natural_nexus.first)  # TODO Improve pylon positioning
-                if self.verbose:
-                    print('%8.2f %3d Building Pylon' % (self.time, self.supply_used))
-
-        # 31 robo
-        if self.units(NEXUS).amount == 2 and pylon_count == 3 and self.units(ROBOTICSFACILITY).amount == 0 and not self.already_pending(ROBOTICSFACILITY):
-            if self.can_afford(ROBOTICSFACILITY):
-                pylon = self.units(PYLON).ready.random
-                await self.build(ROBOTICSFACILITY, near=pylon)
-                if self.verbose:
-                    print('%8.2f %3d Building Robotics Facility' % (self.time, self.supply_used))
-
-        # 35 twilight council
-        if self.supply_used > 35 and self.units(NEXUS).amount == 2 and pylon_count == 3 and self.units(TWILIGHTCOUNCIL).amount == 0 and not self.already_pending(TWILIGHTCOUNCIL):
-            if self.can_afford(TWILIGHTCOUNCIL):
-                pylon = self.units(PYLON).ready.random
-                await self.build(TWILIGHTCOUNCIL, near=pylon)
-                if self.verbose:
-                    print('%8.2f %3d Building Twilight ' % (self.time, self.supply_used))
-
-        # 37 Pylon
-        if self.supply_used >= 37 and self.units(NEXUS).amount == 2 and pylon_count == 3 and not pylon_pending:
-            natural_nexus = self.units(NEXUS).ready
-            if natural_nexus.exists and self.can_afford(PYLON):
-                await self.build(PYLON, near=natural_nexus.first)  # TODO Improve pylon positioning
-                if self.verbose:
-                    print('%8.2f %3d Building Pylon' % (self.time, self.supply_used))
-
-        # Probes util 37 supply
-        if self.supply_used < 37 and not probe_pending:
-            if self.can_afford(PROBE) and nexus_noqueue.exists:
-                await self.do(nexus.train(PROBE))
-                if self.verbose:
-                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
 
     async def morph_gateways_into_warpgates(self):
         for gateway in self.units(GATEWAY).ready:

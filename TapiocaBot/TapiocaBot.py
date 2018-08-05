@@ -51,6 +51,8 @@ class TapiocaBot(sc2.BotAI):
         self.gateways_per_nexus = 4
         self.chronos_on_nexus = 0
         self.warpgate_started = False
+        self.adepts_warped_in = 0
+        self.stalkers_warped_in = 0
 
         # Research stuff
         self.start_forge_after = 240  # seconds - 4min
@@ -225,12 +227,67 @@ class TapiocaBot(sc2.BotAI):
             ccore = self.units(CYBERNETICSCORE).ready.first
             await self.do(ccore(RESEARCH_WARPGATE))
             self.warpgate_started = True
+            if self.verbose:
+                print('%8.2f %3d Researching Warpgate' % (self.time, self.supply_used))
+
+        # @100% Cybernetics core -> Build 2 adepts
+        if self.units(GATEWAY).ready.amount > 0 and self.adepts_warped_in < 2 and self.can_afford(ADEPT) and self.units(ADEPT).amount < 2:
+            gateway = self.units(GATEWAY).noqueue
+            if gateway.exists:
+                abilities = await self.get_available_abilities(gateway.first)
+                if AbilityId.GATEWAYTRAIN_ADEPT in abilities:
+                    if self.can_afford(ADEPT) and self.supply_left > 2:
+                        await self.do(gateway.first.train(ADEPT))
+                        self.adepts_warped_in += 1
+                        if self.verbose and warped_in:
+                            print('%8.2f %3d Warping in an Adept' % (self.time, self.supply_used))
+
+        # @2 Adepts -> 2 Stalkers
+        if self.units(GATEWAY).ready.amount > 0 and self.stalkers_warped_in < 2 and self.adepts_warped_in >= 2 and self.can_afford(STALKER) and self.units(ADEPT).amount < 2 and self.units(STALKER).amount < 2:
+            gateway = self.units(GATEWAY).noqueue
+            if gateway.exists:
+                abilities = await self.get_available_abilities(gateway.first)
+                if AbilityId.GATEWAYTRAIN_STALKER in abilities:
+                    if self.can_afford(STALKER) and self.supply_left > 2:
+                        await self.do(gateway.first.train(STALKER))
+                        self.adepts_warped_in += 1
+                        if self.verbose and warped_in:
+                            print('%8.2f %3d Warping in an Stalker' % (self.time, self.supply_used))
 
     async def morph_gateways_into_warpgates(self):
         for gateway in self.units(GATEWAY).ready:
             abilities = await self.get_available_abilities(gateway)
             if AbilityId.MORPH_WARPGATE in abilities and self.can_afford(AbilityId.MORPH_WARPGATE):
                 await self.do(gateway(MORPH_WARPGATE))
+
+    async def warpin_unit(self, unit=STALKER):
+        for warpgate in self.units(WARPGATE).ready:
+            abilities = await self.get_available_abilities(warpgate)
+            if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
+                if self.can_afford(unit) and self.supply_left > 2:
+                    # Smartly find a good pylon boy to warp in units next to it
+                    pylon = self.pylon_with_less_units()
+                    pos = pylon.position.to2.random_on_distance(4)
+                    placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+
+                    if placement:
+                        await self.do(warpgate.warp_in(unit, placement))
+                        return True
+                    else:
+                        # otherwise just brute force it
+                        for _ in range(10):  # TODO tweak this
+                            pylon = self.units(PYLON).ready.random
+                            pos = pylon.position.to2
+                            placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+
+                            if placement is None:
+                                if self.verbose:
+                                    print("%6.2f can't place" % (self.time))
+                                return False
+
+                            await self.do(warpgate.warp_in(unit, placement))
+                            return True
+        return False
 
     async def expansion_controller(self):
         if self.time > self.auto_expand_after:

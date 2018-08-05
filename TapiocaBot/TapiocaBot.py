@@ -253,6 +253,36 @@ class TapiocaBot(sc2.BotAI):
                         print('%8.2f %3d Warping in an Stalker' % (self.time, self.supply_used))
                     break
 
+        # After the units have been warped in keep making workers
+        if self.stalkers_warped_in >= 2 and self.adepts_warped_in >= 2 and self.supply_used < 31 and not probe_pending:
+            if self.can_afford(PROBE) and nexus_noqueue.exists:
+                await self.do(nexus.train(PROBE))
+                if self.verbose:
+                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
+
+        # 31 nexus
+        if self.supply_left == 0 and self.supply_cap == 31 and self.units(NEXUS).amount == 1 and not self.already_pending(NEXUS):
+            if self.can_afford(NEXUS):
+                await self.expand_now()
+                if self.verbose:
+                    print('%8.2f %3d Expanding' % (self.time, self.supply_used))
+
+        # 31 pylon
+        if self.supply_left == 0 and self.supply_cap == 31 and self.already_pending(NEXUS) and pylon_count == 2 and not pylon_pending:
+            natural_nexus = self.units(NEXUS).not_ready
+            if natural_nexus.exists and self.can_afford(PYLON):
+                await self.build(PYLON, near=natural_nexus.first)  # TODO Improve pylon positioning
+                if self.verbose:
+                    print('%8.2f %3d Building Pylon' % (self.time, self.supply_used))
+
+        # 31 robo
+        if self.units(NEXUS).amount == 2 and pylon_count == 3 and self.units(ROBOTICSFACILITY).amount == 0 and not self.already_pending(ROBOTICSFACILITY):
+            if self.can_afford(ROBOTICSFACILITY):
+                pylon = self.units(PYLON).ready.random
+                await self.build(ROBOTICSFACILITY, near=pylon)
+                if self.verbose:
+                    print('%8.2f %3d Building Robotics Facility' % (self.time, self.supply_used))
+
     async def morph_gateways_into_warpgates(self):
         for gateway in self.units(GATEWAY).ready:
             abilities = await self.get_available_abilities(gateway)

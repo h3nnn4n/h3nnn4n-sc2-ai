@@ -16,7 +16,7 @@ from armymanager import ArmyManager
 
 class TapiocaBot(sc2.BotAI):
     def __init__(self):
-        self.verbose = False
+        self.verbose = True
         self.visual_debug = False
 
         # Control Stuff
@@ -49,6 +49,8 @@ class TapiocaBot(sc2.BotAI):
         self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
         self.maximum_workers = 80
         self.gateways_per_nexus = 4
+        self.chronos_on_nexus = 0
+        self.warpgate_started = False
 
         # Research stuff
         self.start_forge_after = 240  # seconds - 4min
@@ -84,33 +86,34 @@ class TapiocaBot(sc2.BotAI):
             }
 
     def on_start(self):
-        if self.verbose:
-            print('%6.2f Rise and shine' % (0))
-
         self.map_size = self.game_info.map_size
 
         self.army_manager.init()
 
         # TODO Tweak these values
-        self.event_manager.add_event(self.distribute_workers, 5)
-        self.event_manager.add_event(self.manage_upgrades, 5.3)
-        self.event_manager.add_event(self.build_workers, 2.25)
-        self.event_manager.add_event(self.manage_supply, 1)
-        self.event_manager.add_event(self.build_assimilator, 2.5)
-        self.event_manager.add_event(self.build_structures, 2.4)
-        self.event_manager.add_event(self.build_nexus, 5)
-        self.event_manager.add_event(self.build_army, 0.9)
-        self.event_manager.add_event(self.scout_controller, 7)
-        self.event_manager.add_event(self.army_controller, 1.1)
-        self.event_manager.add_event(self.defend, 2)
-        self.event_manager.add_event(self.attack, 3)
-        self.event_manager.add_event(self.expansion_controller, 5)
+        #self.event_manager.add_event(self.distribute_workers, 5)
+        #self.event_manager.add_event(self.manage_upgrades, 5.3)
+        #self.event_manager.add_event(self.build_workers, 2.25)
+        #self.event_manager.add_event(self.manage_supply, 1)
+        #self.event_manager.add_event(self.build_assimilator, 2.5)
+        #self.event_manager.add_event(self.build_structures, 2.4)
+        #self.event_manager.add_event(self.build_nexus, 5)
+        #self.event_manager.add_event(self.build_army, 0.9)
+        #self.event_manager.add_event(self.scout_controller, 7)
+        #self.event_manager.add_event(self.army_controller, 1.1)
+        #self.event_manager.add_event(self.defend, 2)
+        #self.event_manager.add_event(self.attack, 3)
+        #self.event_manager.add_event(self.expansion_controller, 5)
+        self.event_manager.add_event(self.two_gate_fast_expand, 0.5)
+        self.event_manager.add_event(self.morph_gateways_into_warpgates, 1.0)
 
     async def on_step(self, iteration):
         sys.stdout.flush()
 
         if iteration == 0:  # Do nothing on the first iteration to avoid
                             # everything being done at the same time
+            if self.verbose:
+                print('%8.2f %3d Rise and Shine' % (self.time, self.supply_used))
             return
 
         events = self.event_manager.get_current_events(self.time)
@@ -118,6 +121,116 @@ class TapiocaBot(sc2.BotAI):
             await event()
 
         await self.debug()
+
+    async def two_gate_fast_expand(self):
+        # TODO chrono nexus
+
+        nexus = self.units(NEXUS).ready.first
+        nexus_noqueue = self.units(NEXUS).ready.noqueue
+
+        pylon_count = self.units(PYLON).ready.amount
+        pylon_pending = self.already_pending(PYLON)
+
+        probe_count = self.units(PROBE).ready.amount
+        probe_pending = self.already_pending(PROBE)
+
+        gateway_count = self.units(GATEWAY).amount
+        gateway_pending = self.already_pending(GATEWAY)
+
+        cybernetics_count = self.units(CYBERNETICSCORE).amount
+        cybernetics_pending = self.already_pending(CYBERNETICSCORE)
+
+        # Chrono
+        nexus_abilities = await self.get_available_abilities(nexus)
+        if EFFECT_CHRONOBOOSTENERGYCOST in nexus_abilities:
+            if not nexus.has_buff(CHRONOBOOSTENERGYCOST):
+                if self.chronos_on_nexus < 2:
+                    self.chronos_on_nexus += 1
+                    await self.do(nexus(EFFECT_CHRONOBOOSTENERGYCOST, nexus))
+                else:
+                    cybernetics_core = self.units(CYBERNETICSCORE).ready
+                    if cybernetics_core.exists:
+                        await self.do(nexus(EFFECT_CHRONOBOOSTENERGYCOST, cybernetics_core.first))
+
+        # Probe until 14
+        if probe_count < 14 and not probe_pending:
+            if self.can_afford(PROBE) and nexus_noqueue.exists:
+                await self.do(nexus.train(PROBE))
+                if self.verbose:
+                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
+
+        # 14 Pylon
+        if probe_count == 14 and pylon_count == 0 and not pylon_pending:
+            if self.can_afford(PYLON):
+                await self.build_pylon()
+                if self.verbose:
+                    print('%8.2f %3d Building Pylon' % (self.time, self.supply_used))
+
+        # Probe until 16
+        if probe_count < 16 and not probe_pending and self.units(PYLON).amount > 0:
+            if self.can_afford(PROBE) and nexus_noqueue.exists:
+                await self.do(nexus.train(PROBE))
+                if self.verbose:
+                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
+
+        # 16 Gateway
+        if probe_count == 16 and pylon_count >= 1 and gateway_count == 0 and not gateway_pending:
+            if self.can_afford(GATEWAY):
+                pylon = self.units(PYLON).ready.random
+                await self.build(GATEWAY, near=pylon)
+                if self.verbose:
+                    print('%8.2f %3d Building Gateway' % (self.time, self.supply_used))
+
+        # @100% Gateway -> Cybernetics core
+        if self.units(GATEWAY).ready.amount == 1 and not cybernetics_pending and cybernetics_count == 0:
+            if self.can_afford(CYBERNETICSCORE):
+                pylon = self.units(PYLON).ready.random
+                await self.build(CYBERNETICSCORE, near=pylon)
+                if self.verbose:
+                    print('%8.2f %3d Building Cybernetics Core' % (self.time, self.supply_used))
+
+        # 16 and 17 Gas
+        if ((probe_count == 16 and self.units(ASSIMILATOR).amount == 0) or
+            (probe_count == 17 and self.units(ASSIMILATOR).amount == 1)) and self.units(GATEWAY).amount > 0:
+            if self.can_afford(ASSIMILATOR):
+                await self.build_assimilator()
+                if self.verbose:
+                    print('%8.2f %3d Building Assimilator' % (self.time, self.supply_used))
+
+        # 18 Gateway
+        if probe_count == 18 and pylon_count >= 1 and gateway_count == 1:
+            if self.can_afford(GATEWAY):
+                pylon = self.units(PYLON).ready.random
+                await self.build(GATEWAY, near=pylon)
+                if self.verbose:
+                    print('%8.2f %3d Building Gateway' % (self.time, self.supply_used))
+
+        # Probes until 21
+        if ((probe_count < 18 and self.units(GATEWAY).amount == 1) or
+            (probe_count < 21 and self.units(GATEWAY).amount == 2)) and not probe_pending:
+            if self.can_afford(PROBE) and nexus_noqueue.exists:
+                await self.do(nexus.train(PROBE))
+                if self.verbose:
+                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
+
+        # 21 Pylon
+        if probe_count == 21 and pylon_count == 1 and not pylon_pending:
+            if self.can_afford(PYLON):
+                await self.build_pylon()
+                if self.verbose:
+                    print('%8.2f %3d Building Pylon' % (self.time, self.supply_used))
+
+        # @100% Cybernetics core -> Research Warpgate
+        if self.units(CYBERNETICSCORE).ready.exists and self.can_afford(RESEARCH_WARPGATE) and not self.warpgate_started:
+            ccore = self.units(CYBERNETICSCORE).ready.first
+            await self.do(ccore(RESEARCH_WARPGATE))
+            self.warpgate_started = True
+
+    async def morph_gateways_into_warpgates(self):
+        for gateway in self.units(GATEWAY).ready:
+            abilities = await self.get_available_abilities(gateway)
+            if AbilityId.MORPH_WARPGATE in abilities and self.can_afford(AbilityId.MORPH_WARPGATE):
+                await self.do(gateway(MORPH_WARPGATE))
 
     async def expansion_controller(self):
         if self.time > self.auto_expand_after:
@@ -384,6 +497,25 @@ class TapiocaBot(sc2.BotAI):
             if self.can_afford(PROBE) and self.supply_left > 2:
                 await self.do(nexus.random.train(PROBE))
 
+    async def build_pylon(self):
+        for tries in range(5):  # Only tries 5 different placements
+            nexus = self.units(NEXUS).ready
+
+            if not nexus.exists:
+                return
+
+            nexus = nexus.random
+
+            if not self.already_pending(PYLON) and self.can_afford(PYLON):
+                pos = await self.find_placement(PYLON, nexus.position, placement_step=2)
+                mineral_fields = self.state.mineral_field.closer_than(12, nexus).closer_than(4, pos)
+
+                if mineral_fields:
+                    continue
+                else:
+                    await self.build(PYLON, near=pos)
+                    break
+
     async def manage_supply(self):
         for tries in range(5):  # Only tries 5 different placements
             nexus = self.units(NEXUS).ready
@@ -405,25 +537,14 @@ class TapiocaBot(sc2.BotAI):
                         break
 
     async def build_assimilator(self):
-        if not self.can('build_assimilator'):
-            return
-
-        if self.workers.amount < 16:
-            return
-
         for nexus in self.units(NEXUS).ready:
-            vgs = self.state.vespene_geyser.closer_than(20, nexus)
+            vgs = self.state.vespene_geyser.closer_than(15, nexus)
             for vg in vgs:
-                if not self.can_afford(ASSIMILATOR):
-                    break
-
                 worker = self.select_build_worker(vg.position)
                 if worker is None:
                     break
 
-                if not self.units(ASSIMILATOR).closer_than(1.0, vg).exists:
-                    if self.verbose:
-                        print('%6.2f building assimilator' % (self.time))
+                if not self.units(ASSIMILATOR).closer_than(1.0, vg).exists and self.can_afford(ASSIMILATOR):
                     await self.do(worker.build(ASSIMILATOR, vg))
 
     async def debug(self):

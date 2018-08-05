@@ -25,6 +25,7 @@
  - [ ] Keep building observers for the army
  - [ ] Build more unit types, i.e. immortals and void rays
  - [ ] Build static defense, i.e. shield batteries and cannons
+ - [ ] New build order: Gateway expand -> gate, gas, nexus, cyber, tech of choice, 2 more gates
 
  - Nits and bugs
  - [ ] Fix warpins failing due to bad placement

@@ -283,6 +283,29 @@ class TapiocaBot(sc2.BotAI):
                 if self.verbose:
                     print('%8.2f %3d Building Robotics Facility' % (self.time, self.supply_used))
 
+        # 35 twilight council
+        if self.supply_used > 35 and self.units(NEXUS).amount == 2 and pylon_count == 3 and self.units(TWILIGHTCOUNCIL).amount == 0 and not self.already_pending(TWILIGHTCOUNCIL):
+            if self.can_afford(TWILIGHTCOUNCIL):
+                pylon = self.units(PYLON).ready.random
+                await self.build(TWILIGHTCOUNCIL, near=pylon)
+                if self.verbose:
+                    print('%8.2f %3d Building Twilight ' % (self.time, self.supply_used))
+
+        # 37 Pylon
+        if self.supply_used >= 37 and self.units(NEXUS).amount == 2 and pylon_count == 3 and not pylon_pending:
+            natural_nexus = self.units(NEXUS).ready
+            if natural_nexus.exists and self.can_afford(PYLON):
+                await self.build(PYLON, near=natural_nexus.first)  # TODO Improve pylon positioning
+                if self.verbose:
+                    print('%8.2f %3d Building Pylon' % (self.time, self.supply_used))
+
+        # Probes util 37 supply
+        if self.supply_used < 37 and not probe_pending:
+            if self.can_afford(PROBE) and nexus_noqueue.exists:
+                await self.do(nexus.train(PROBE))
+                if self.verbose:
+                    print('%8.2f %3d Building Probe' % (self.time, self.supply_used))
+
     async def morph_gateways_into_warpgates(self):
         for gateway in self.units(GATEWAY).ready:
             abilities = await self.get_available_abilities(gateway)

@@ -1,3 +1,5 @@
+from patch_path import patch_path
+patch_path()
 import numpy as np
 import random
 import sys
@@ -554,13 +556,3 @@ class SpatialLlama(sc2.BotAI):
             return getattr(unit, field)
         else:
             return None
-
-
-def main():
-    sc2.run_game(sc2.maps.get("Abyssal Reef LE"), [
-        Bot(Race.Protoss, SpatialLlama()),
-        Computer(Race.Protoss, Difficulty.Medium)
-    ], realtime=False)
-
-if __name__ == '__main__':
-    main()

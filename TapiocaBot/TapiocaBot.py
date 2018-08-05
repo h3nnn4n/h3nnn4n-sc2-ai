@@ -93,7 +93,8 @@ class TapiocaBot(sc2.BotAI):
         self.army_manager.init()
 
         # TODO Tweak these values
-        #self.event_manager.add_event(self.distribute_workers, 5)
+        self.event_manager.add_event(self.distribute_workers, 10)
+        self.event_manager.add_event(self.handle_idle_workders, 0.5)
         #self.event_manager.add_event(self.manage_upgrades, 5.3)
         #self.event_manager.add_event(self.build_workers, 2.25)
         #self.event_manager.add_event(self.manage_supply, 1)
@@ -232,27 +233,25 @@ class TapiocaBot(sc2.BotAI):
 
         # @100% Cybernetics core -> Build 2 adepts
         if self.units(GATEWAY).ready.amount > 0 and self.adepts_warped_in < 2 and self.can_afford(ADEPT) and self.units(ADEPT).amount < 2:
-            gateway = self.units(GATEWAY).noqueue
-            if gateway.exists:
-                abilities = await self.get_available_abilities(gateway.first)
-                if AbilityId.GATEWAYTRAIN_ADEPT in abilities:
-                    if self.can_afford(ADEPT) and self.supply_left > 2:
-                        await self.do(gateway.first.train(ADEPT))
-                        self.adepts_warped_in += 1
-                        if self.verbose and warped_in:
-                            print('%8.2f %3d Warping in an Adept' % (self.time, self.supply_used))
+            for gateway in self.units(GATEWAY).ready.noqueue:
+                abilities = await self.get_available_abilities(gateway)
+                if self.can_afford(AbilityId.TRAIN_ADEPT) and AbilityId.TRAIN_ADEPT in abilities and self.can_afford(ADEPT):
+                    await self.do(gateway.train(ADEPT))
+                    self.adepts_warped_in += 1
+                    if self.verbose:
+                        print('%8.2f %3d Warping in an Adept' % (self.time, self.supply_used))
+                    break
 
         # @2 Adepts -> 2 Stalkers
         if self.units(GATEWAY).ready.amount > 0 and self.stalkers_warped_in < 2 and self.adepts_warped_in >= 2 and self.can_afford(STALKER) and self.units(ADEPT).amount < 2 and self.units(STALKER).amount < 2:
-            gateway = self.units(GATEWAY).noqueue
-            if gateway.exists:
-                abilities = await self.get_available_abilities(gateway.first)
-                if AbilityId.GATEWAYTRAIN_STALKER in abilities:
-                    if self.can_afford(STALKER) and self.supply_left > 2:
-                        await self.do(gateway.first.train(STALKER))
-                        self.adepts_warped_in += 1
-                        if self.verbose and warped_in:
-                            print('%8.2f %3d Warping in an Stalker' % (self.time, self.supply_used))
+            for gateway in self.units(GATEWAY).ready.noqueue:
+                abilities = await self.get_available_abilities(gateway)
+                if self.can_afford(AbilityId.GATEWAYTRAIN_STALKER) and AbilityId.GATEWAYTRAIN_STALKER in abilities and self.can_afford(STALKER):
+                    await self.do(gateway.train(STALKER))
+                    self.stalkers_warped_in += 1
+                    if self.verbose:
+                        print('%8.2f %3d Warping in an Stalker' % (self.time, self.supply_used))
+                    break
 
     async def morph_gateways_into_warpgates(self):
         for gateway in self.units(GATEWAY).ready:
@@ -553,6 +552,12 @@ class TapiocaBot(sc2.BotAI):
         if nexus and self.workers.amount < self.units(NEXUS).amount * 22 and self.workers.amount < self.maximum_workers:
             if self.can_afford(PROBE) and self.supply_left > 2:
                 await self.do(nexus.random.train(PROBE))
+
+    async def handle_idle_workders(self):
+        idle_workers = self.units(PROBE).idle
+
+        if idle_workers.exists:
+            await self.distribute_workers()
 
     async def build_pylon(self):
         for tries in range(5):  # Only tries 5 different placements

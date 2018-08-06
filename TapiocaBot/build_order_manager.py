@@ -15,14 +15,19 @@ class BuildOrderManager:
     async def step(self):
         await self.build_orders[self.current_build_order]()
 
-    def is_early_game_over(self):
+    def did_early_game_just_end(self):
+        finished = False
         finished_early_game = self.build_orders[self.current_build_order].finished
 
         if not self.finished_early_game and finished_early_game:
             if self.verbose:
                 print('%8.2f %3d Finished basic Build Order Phase' % (self.bot.time, self.bot.supply_used))
                 print('\n------------------------\n')
+            finished = True
 
         self.finished_early_game = finished_early_game
 
+        return finished
+
+    def is_early_game_over(self):
         return self.finished_early_game

@@ -14,6 +14,7 @@ from sc2.position import Point2, Point3
 from event_manager import EventManager
 from army_manager import ArmyManager
 from build_order_manager import BuildOrderManager
+from robotics_facility_controller import RoboticsFacilitiyController
 
 
 class TapiocaBot(sc2.BotAI):
@@ -60,6 +61,8 @@ class TapiocaBot(sc2.BotAI):
         self.start_forge_after = 240  # seconds - 4min
         self.forge_research_priority = ['ground_weapons', 'shield']
 
+        # Managers and controllers
+        self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose)
         self.event_manager = EventManager()
         self.build_order_manager = BuildOrderManager(
             build_order='two_gate_fast_expand',
@@ -124,11 +127,18 @@ class TapiocaBot(sc2.BotAI):
 
             return
 
-        if self.build_order_manager.is_early_game_over():
+        if self.build_order_manager.did_early_game_just_end():
+            print('             Enabling more stuff')
             self.event_manager.add_event(self.manage_supply, 1)
             self.event_manager.add_event(self.expansion_controller, 5)
             self.event_manager.add_event(self.build_nexus, 5)
             self.event_manager.add_event(self.build_workers, 2.25)
+            self.event_manager.add_event(self.robotics_facility_controller.step, 1.0)
+
+            self.robotics_facility_controller.add_order(OBSERVER)
+            self.robotics_facility_controller.add_order(IMMORTAL)
+            self.robotics_facility_controller.add_order(IMMORTAL)
+            self.robotics_facility_controller.add_order(IMMORTAL)
 
         events = self.event_manager.get_current_events(self.time)
         for event in events:

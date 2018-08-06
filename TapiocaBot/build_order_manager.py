@@ -6,6 +6,7 @@ class BuildOrderManager:
         self.current_build_order = build_order
         self.bot = bot
         self.verbose = verbose
+        self.finished_early_game = False
 
         self.build_orders = {
             'two_gate_fast_expand': TwoGateFastExpand(bot=bot, verbose=verbose)
@@ -13,3 +14,15 @@ class BuildOrderManager:
 
     async def step(self):
         await self.build_orders[self.current_build_order]()
+
+    def is_early_game_over(self):
+        finished_early_game = self.build_orders[self.current_build_order].finished
+
+        if not self.finished_early_game and finished_early_game:
+            if self.verbose:
+                print('%8.2f %3d Finished basic Build Order Phase' % (self.bot.time, self.bot.supply_used))
+                print('\n------------------------\n')
+
+        self.finished_early_game = finished_early_game
+
+        return self.finished_early_game

@@ -10,9 +10,11 @@ class TwoGateFastExpand:
     def __init__(self, bot=None, verbose=False):
         self.bot = bot
         self.verbose = verbose
+        self.finished = False
 
     async def __call__(self):
-        await self.step()
+        if not self.finished:
+            await self.step()
 
     async def step(self):
         nexus = self.bot.units(NEXUS).ready.first
@@ -130,7 +132,7 @@ class TwoGateFastExpand:
                     break
 
         # @2 Adepts -> 2 Stalkers
-        if self.bot.units(GATEWAY).ready.amount > 0 and self.bot.stalkers_warped_in < 2 and self.bot.adepts_warped_in >= 2 and self.bot.can_afford(STALKER) and self.bot.units(ADEPT).amount < 2 and self.bot.units(STALKER).amount < 2:
+        if self.bot.units(GATEWAY).ready.amount > 0 and self.bot.stalkers_warped_in < 2 and self.bot.adepts_warped_in >= 2 and self.bot.can_afford(STALKER) and self.bot.units(ADEPT).amount >= 2 and self.bot.units(STALKER).amount < 2:
             for gateway in self.bot.units(GATEWAY).ready.noqueue:
                 abilities = await self.bot.get_available_abilities(gateway)
                 if self.bot.can_afford(AbilityId.GATEWAYTRAIN_STALKER) and AbilityId.GATEWAYTRAIN_STALKER in abilities and self.bot.can_afford(STALKER):
@@ -192,3 +194,8 @@ class TwoGateFastExpand:
                 await self.bot.do(nexus.train(PROBE))
                 if self.verbose:
                     print('%8.2f %3d Building Probe' % (self.bot.time, self.bot.supply_used))
+
+        # Mark the build as ready
+        if self.bot.supply_used == 37 and self.bot.units(NEXUS).amount == 2 and pylon_count == 3 and \
+           self.bot.units(TWILIGHTCOUNCIL).amount == 1 and self.bot.units(ROBOTICSFACILITY).amount == 1:
+            self.finished = True

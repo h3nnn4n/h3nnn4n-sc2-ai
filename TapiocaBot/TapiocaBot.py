@@ -47,10 +47,10 @@ class TapiocaBot(sc2.BotAI):
         self.map_size = None
 
         # Expansion and macro stuff
-        self.auto_expand_after = 300 # 5 Minutes
+        self.auto_expand_after = 60 * 6.5
         self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
-        self.maximum_workers = 80
-        self.gateways_per_nexus = 4
+        self.maximum_workers = 66
+        self.gateways_per_nexus = 2
         self.chronos_on_nexus = 0
         self.warpgate_started = False
         self.adepts_warped_in = 0
@@ -103,17 +103,13 @@ class TapiocaBot(sc2.BotAI):
         self.event_manager.add_event(self.distribute_workers, 10)
         self.event_manager.add_event(self.handle_idle_workders, 0.5)
         #self.event_manager.add_event(self.manage_upgrades, 5.3)
-        #self.event_manager.add_event(self.build_workers, 2.25)
-        #self.event_manager.add_event(self.manage_supply, 1)
         #self.event_manager.add_event(self.build_assimilator, 2.5)
         #self.event_manager.add_event(self.build_structures, 2.4)
-        #self.event_manager.add_event(self.build_nexus, 5)
         #self.event_manager.add_event(self.build_army, 0.9)
         #self.event_manager.add_event(self.scout_controller, 7)
         #self.event_manager.add_event(self.army_controller, 1.1)
         #self.event_manager.add_event(self.defend, 2)
         #self.event_manager.add_event(self.attack, 3)
-        #self.event_manager.add_event(self.expansion_controller, 5)
         self.event_manager.add_event(self.build_order_manager.step, 0.5)
         self.event_manager.add_event(self.morph_gateways_into_warpgates, 1.0)
 
@@ -123,8 +119,16 @@ class TapiocaBot(sc2.BotAI):
         if iteration == 0:  # Do nothing on the first iteration to avoid
                             # everything being done at the same time
             if self.verbose:
+                print('\n------------------------\n')
                 print('%8.2f %3d Rise and Shine' % (self.time, self.supply_used))
+
             return
+
+        if self.build_order_manager.is_early_game_over():
+            self.event_manager.add_event(self.manage_supply, 1)
+            self.event_manager.add_event(self.expansion_controller, 5)
+            self.event_manager.add_event(self.build_nexus, 5)
+            self.event_manager.add_event(self.build_workers, 2.25)
 
         events = self.event_manager.get_current_events(self.time)
         for event in events:

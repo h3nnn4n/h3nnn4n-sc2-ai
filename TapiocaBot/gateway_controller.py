@@ -45,7 +45,7 @@ class GatewayController:
                 next_unit = self.get_next_unit()
                 if next_unit is not None and self.bot.can_afford(next_unit) and self.bot.supply_left > 2:
                     # Smartly find a good pylon boy to warp in units next to it
-                    pylon = self.bot.pylon_with_less_units()
+                    pylon = self.bot.building_manager.pylon_with_less_units()
                     pos = pylon.position.to2.random_on_distance(4)
                     placement = await self.bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
 

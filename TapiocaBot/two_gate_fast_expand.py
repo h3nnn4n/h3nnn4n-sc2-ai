@@ -12,6 +12,11 @@ class TwoGateFastExpand:
         self.verbose = verbose
         self.finished = False
 
+        self.chronos_on_nexus = 0
+        self.adepts_warped_in = 0
+        self.stalkers_warped_in = 0
+        self.warpgate_started = False
+
     async def __call__(self):
         if not self.finished:
             await self.step()
@@ -36,8 +41,8 @@ class TwoGateFastExpand:
         nexus_abilities = await self.bot.get_available_abilities(nexus)
         if EFFECT_CHRONOBOOSTENERGYCOST in nexus_abilities:
             if not nexus.has_buff(CHRONOBOOSTENERGYCOST):
-                if self.bot.chronos_on_nexus < 2:
-                    self.bot.chronos_on_nexus += 1
+                if self.chronos_on_nexus < 2:
+                    self.chronos_on_nexus += 1
                     await self.bot.do(nexus(EFFECT_CHRONOBOOSTENERGYCOST, nexus))
                 else:
                     cybernetics_core = self.bot.units(CYBERNETICSCORE).ready
@@ -54,7 +59,7 @@ class TwoGateFastExpand:
         # 14 Pylon
         if probe_count == 14 and pylon_count == 0 and not pylon_pending:
             if self.bot.can_afford(PYLON):
-                await self.bot.build_pylon()
+                await self.bot.building_manager.build_pylon()
                 if self.verbose:
                     print('%8.2f %3d Building Pylon' % (self.bot.time, self.bot.supply_used))
 
@@ -85,7 +90,7 @@ class TwoGateFastExpand:
         if ((probe_count == 16 and self.bot.units(ASSIMILATOR).amount == 0) or
             (probe_count == 17 and self.bot.units(ASSIMILATOR).amount == 1)) and self.bot.units(GATEWAY).amount > 0:
             if self.bot.can_afford(ASSIMILATOR):
-                await self.bot.build_assimilator()
+                await self.bot.building_manager.build_assimilator()
                 if self.verbose:
                     print('%8.2f %3d Building Assimilator' % (self.bot.time, self.bot.supply_used))
 
@@ -108,42 +113,42 @@ class TwoGateFastExpand:
         # 21 Pylon
         if probe_count == 21 and pylon_count == 1 and not pylon_pending:
             if self.bot.can_afford(PYLON):
-                await self.bot.build_pylon()
+                await self.bot.building_manager.build_pylon()
                 if self.verbose:
                     print('%8.2f %3d Building Pylon' % (self.bot.time, self.bot.supply_used))
 
         # @100% Cybernetics core -> Research Warpgate
-        if self.bot.units(CYBERNETICSCORE).ready.exists and self.bot.can_afford(RESEARCH_WARPGATE) and not self.bot.warpgate_started:
+        if self.bot.units(CYBERNETICSCORE).ready.exists and self.bot.can_afford(RESEARCH_WARPGATE) and not self.warpgate_started:
             ccore = self.bot.units(CYBERNETICSCORE).ready.first
             await self.bot.do(ccore(RESEARCH_WARPGATE))
-            self.bot.warpgate_started = True
+            self.warpgate_started = True
             if self.verbose:
                 print('%8.2f %3d Researching Warpgate' % (self.bot.time, self.bot.supply_used))
 
         # @100% Cybernetics core -> Build 2 adepts
-        if self.bot.units(GATEWAY).ready.amount > 0 and self.bot.adepts_warped_in < 2 and self.bot.can_afford(ADEPT) and self.bot.units(ADEPT).amount < 2:
+        if self.bot.units(GATEWAY).ready.amount > 0 and self.adepts_warped_in < 2 and self.bot.can_afford(ADEPT) and self.bot.units(ADEPT).amount < 2:
             for gateway in self.bot.units(GATEWAY).ready.noqueue:
                 abilities = await self.bot.get_available_abilities(gateway)
                 if self.bot.can_afford(AbilityId.TRAIN_ADEPT) and AbilityId.TRAIN_ADEPT in abilities and self.bot.can_afford(ADEPT):
                     await self.bot.do(gateway.train(ADEPT))
-                    self.bot.adepts_warped_in += 1
+                    self.adepts_warped_in += 1
                     if self.verbose:
                         print('%8.2f %3d Warping in an Adept' % (self.bot.time, self.bot.supply_used))
                     break
 
         # @2 Adepts -> 2 Stalkers
-        if self.bot.units(GATEWAY).ready.amount > 0 and self.bot.stalkers_warped_in < 2 and self.bot.adepts_warped_in >= 2 and self.bot.can_afford(STALKER) and self.bot.units(ADEPT).amount >= 2 and self.bot.units(STALKER).amount < 2:
+        if self.bot.units(GATEWAY).ready.amount > 0 and self.stalkers_warped_in < 2 and self.adepts_warped_in >= 2 and self.bot.can_afford(STALKER) and self.bot.units(ADEPT).amount >= 2 and self.bot.units(STALKER).amount < 2:
             for gateway in self.bot.units(GATEWAY).ready.noqueue:
                 abilities = await self.bot.get_available_abilities(gateway)
                 if self.bot.can_afford(AbilityId.GATEWAYTRAIN_STALKER) and AbilityId.GATEWAYTRAIN_STALKER in abilities and self.bot.can_afford(STALKER):
                     await self.bot.do(gateway.train(STALKER))
-                    self.bot.stalkers_warped_in += 1
+                    self.stalkers_warped_in += 1
                     if self.verbose:
                         print('%8.2f %3d Warping in an Stalker' % (self.bot.time, self.bot.supply_used))
                     break
 
         # After the units have been warped in keep making workers
-        if self.bot.stalkers_warped_in >= 2 and self.bot.adepts_warped_in >= 2 and self.bot.supply_used < 31 and not probe_pending:
+        if self.stalkers_warped_in >= 2 and self.adepts_warped_in >= 2 and self.bot.supply_used < 31 and not probe_pending:
             if self.bot.can_afford(PROBE) and nexus_noqueue.exists:
                 await self.bot.do(nexus.train(PROBE))
                 if self.verbose:

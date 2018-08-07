@@ -17,6 +17,7 @@ from build_order_manager import BuildOrderManager
 from robotics_facility_controller import RoboticsFacilitiyController
 from gateway_controller import GatewayController
 from scouting_controller import ScoutingController
+from building_manager import BuildingManager
 
 
 class TapiocaBot(sc2.BotAI):
@@ -25,8 +26,8 @@ class TapiocaBot(sc2.BotAI):
         self.visual_debug = False
 
         # Control Stuff
-        self.want_to_expand = False
         self.researched_warpgate = False
+        self.maximum_workers = 66
 
         # Attack stuff
         self.army_manager = ArmyManager(bot=self)
@@ -42,16 +43,6 @@ class TapiocaBot(sc2.BotAI):
         # Threat stuff stuff
         self.defending_from = {}
 
-        # Expansion and macro stuff
-        self.auto_expand_after = 60 * 6.5
-        self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
-        self.maximum_workers = 66
-        self.gateways_per_nexus = 2
-        self.chronos_on_nexus = 0
-        self.warpgate_started = False
-        self.adepts_warped_in = 0
-        self.stalkers_warped_in = 0
-
         # Research stuff
         self.start_forge_after = 240  # seconds - 4min
         self.forge_research_priority = ['ground_weapons', 'shield']
@@ -60,6 +51,7 @@ class TapiocaBot(sc2.BotAI):
         self.scouting_controller = ScoutingController(bot=self, verbose=self.verbose)
         self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose)
         self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=True)
+        self.building_manager = BuildingManager(bot=self, verbose=self.verbose)
         self.event_manager = EventManager()
         self.build_order_manager = BuildOrderManager(
             build_order='two_gate_fast_expand',
@@ -122,11 +114,12 @@ class TapiocaBot(sc2.BotAI):
 
         if self.build_order_manager.did_early_game_just_end():
             print('             Enabling more stuff')
-            self.event_manager.add_event(self.manage_supply, 1)
-            self.event_manager.add_event(self.expansion_controller, 5)
-            self.event_manager.add_event(self.build_nexus, 5)
+            self.event_manager.add_event(self.building_manager.manage_supply, 1)
+            self.event_manager.add_event(self.building_manager.expansion_controller, 5)
+            self.event_manager.add_event(self.building_manager.build_nexus, 5)
             self.event_manager.add_event(self.build_workers, 2.25)
             self.event_manager.add_event(self.scouting_controller.step, 10)
+            self.event_manager.add_event(self.building_manager.step, 2)
 
             # Gateway stuff
             self.event_manager.add_event(self.gateway_controller.step, 1.0)
@@ -149,12 +142,9 @@ class TapiocaBot(sc2.BotAI):
 
         await self.debug()
 
-    async def expansion_controller(self):
-        if self.time > self.auto_expand_after:
-            number_of_minerals = sum([self.state.mineral_field.closer_than(10, x).amount for x in self.townhalls])
-
-            if number_of_minerals <= self.auto_expand_mineral_threshold:
-                self.want_to_expand = True
+    async def manage_upgrades(self):
+        await self.manage_cyberbetics_upgrades()
+        await self.manage_forge_upgrades()
 
     async def army_controller(self):
         await self.army_manager.step()
@@ -226,119 +216,6 @@ class TapiocaBot(sc2.BotAI):
                 if self.verbose:
                     print('%6.2f reinforcing with %d units' % (self.time, total_units))
 
-    async def build_army(self):
-        if not self.can('build_army'):
-            return
-
-        # Iterates over all gateways
-        for gateway in self.units(GATEWAY).ready.noqueue:
-            abilities = await self.get_available_abilities(gateway)
-
-            # Checks if the gateway can morph into a warpgate
-            if AbilityId.MORPH_WARPGATE in abilities and self.can_afford(AbilityId.MORPH_WARPGATE):
-                await self.do(gateway(MORPH_WARPGATE))
-
-            # Else, tries to build a stalker
-            elif AbilityId.GATEWAYTRAIN_STALKER in abilities:
-                if self.can_afford(STALKER) and self.supply_left > 2:
-                    await self.do(gateway.train(STALKER))
-
-            # Else, tries to build a zealot
-            elif AbilityId.GATEWAYTRAIN_ZEALOT in abilities:
-                if self.can_afford(ZEALOT) and self.supply_left > 2:
-                    await self.do(gateway.train(ZEALOT))
-
-        # Iterates over all warpgates and warp in stalkers
-        for warpgate in self.units(WARPGATE).ready:
-            abilities = await self.get_available_abilities(warpgate)
-            if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
-                if self.can_afford(STALKER) and self.supply_left > 2:
-                    # Smartly find a good pylon boy to warp in units next to it
-                    pylon = self.pylon_with_less_units()
-                    pos = pylon.position.to2.random_on_distance(4)
-                    placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
-
-                    if placement:
-                        await self.do(warpgate.warp_in(STALKER, placement))
-                    else:
-                        # otherwise just brute force it
-                        for _ in range(10):  # TODO tweak this
-                            pylon = self.units(PYLON).ready.random
-                            pos = pylon.position.to2.random_on_distance(4)
-                            placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
-
-                            if placement is None:
-                                if self.verbose:
-                                    print("%6.2f can't place" % (self.time))
-                                return
-
-                            await self.do(warpgate.warp_in(STALKER, placement))
-                            continue
-
-    async def build_structures(self):
-        if not self.can('build_structures'):
-            return
-
-        # Only start building main structures if there is
-        # at least one pylon
-        if not self.units(PYLON).ready.exists:
-            return
-        else:
-            pylon = self.units(PYLON).ready.random
-
-        number_of_gateways = self.units(WARPGATE).amount + self.units(GATEWAY).amount
-
-        # Build the first gateway
-        if self.can_afford(GATEWAY) and number_of_gateways == 0:
-            if self.verbose:
-                print('%6.2f starting first gateway' % (self.time))
-            await self.build(GATEWAY, near=pylon)
-
-        # Build the cybernetics core after the first gateway is ready
-        if self.can_afford(CYBERNETICSCORE) and self.units(CYBERNETICSCORE).amount == 0 and self.units(GATEWAY).ready:
-            if self.verbose:
-                print('%6.2f starting cybernetics' % (self.time))
-            await self.build(CYBERNETICSCORE, near=pylon)
-            self.want_to_expand = True
-
-        # Build more gateways after the cybernetics core is ready
-        if self.can_afford(GATEWAY) and self.units(CYBERNETICSCORE).ready and (
-                (number_of_gateways < 4 and self.units(NEXUS).amount <= 2) or
-                (number_of_gateways <= self.units(NEXUS).amount * self.gateways_per_nexus)
-            ):
-            if self.verbose:
-                print('%6.2f starting more gateways' % (self.time))
-            await self.build(GATEWAY, near=pylon)
-
-        # Build 2 forges
-        if self.time > self.start_forge_after and self.units(FORGE).amount < 2:
-            if self.can_afford(FORGE) and not self.already_pending(FORGE):
-                if self.verbose:
-                    print('%6.2f building forge' % (self.time))
-                await self.build(FORGE, near=pylon)
-
-        # Build twilight council
-        if self.units(FORGE).ready.amount >= 2 and self.units(TWILIGHTCOUNCIL).amount == 0:
-            if self.can_afford(TWILIGHTCOUNCIL) and not self.already_pending(TWILIGHTCOUNCIL):
-                if self.verbose:
-                    print('%6.2f building twilight council' % (self.time))
-                await self.build(TWILIGHTCOUNCIL, near=pylon)
-
-    async def build_nexus(self):
-        if not self.can('expand'):
-            return
-
-        if not self.already_pending(NEXUS) and self.can_afford(NEXUS):
-            if self.verbose:
-                print('%6.2f expanding' % (self.time))
-
-            await self.expand_now()
-            self.want_to_expand = False
-
-    async def manage_upgrades(self):
-        await self.manage_cyberbetics_upgrades()
-        await self.manage_forge_upgrades()
-
     async def manage_cyberbetics_upgrades(self):
         if self.units(CYBERNETICSCORE).ready.exists and self.can_afford(RESEARCH_WARPGATE) and not self.researched_warpgate:
             ccore = self.units(CYBERNETICSCORE).ready.first
@@ -374,56 +251,6 @@ class TapiocaBot(sc2.BotAI):
 
         if idle_workers.exists:
             await self.distribute_workers()
-
-    async def build_pylon(self):
-        for tries in range(5):  # Only tries 5 different placements
-            nexus = self.units(NEXUS).ready
-
-            if not nexus.exists:
-                return
-
-            nexus = nexus.random
-
-            if not self.already_pending(PYLON) and self.can_afford(PYLON):
-                pos = await self.find_placement(PYLON, nexus.position, placement_step=2)
-                mineral_fields = self.state.mineral_field.closer_than(12, nexus).closer_than(4, pos)
-
-                if mineral_fields:
-                    continue
-                else:
-                    await self.build(PYLON, near=pos)
-                    break
-
-    async def manage_supply(self):
-        for tries in range(5):  # Only tries 5 different placements
-            nexus = self.units(NEXUS).ready
-
-            if not nexus:
-                return
-
-            nexus = nexus.random
-
-            if self.supply_left < 8 and not self.already_pending(PYLON):
-                if self.can_afford(PYLON):
-                    pos = await self.find_placement(PYLON, nexus.position, placement_step=2)
-                    mineral_fields = self.state.mineral_field.closer_than(8, nexus).closer_than(4, pos)
-
-                    if mineral_fields:
-                        continue
-                    else:
-                        await self.build(PYLON, near=pos)
-                        break
-
-    async def build_assimilator(self):
-        for nexus in self.units(NEXUS).ready:
-            vgs = self.state.vespene_geyser.closer_than(15, nexus)
-            for vg in vgs:
-                worker = self.select_build_worker(vg.position)
-                if worker is None:
-                    break
-
-                if not self.units(ASSIMILATOR).closer_than(1.0, vg).exists and self.can_afford(ASSIMILATOR):
-                    await self.do(worker.build(ASSIMILATOR, vg))
 
     async def debug(self):
         if not self.visual_debug:
@@ -499,39 +326,6 @@ class TapiocaBot(sc2.BotAI):
             return random.choice(self.known_enemy_structures)
 
         return self.enemy_start_locations[0]
-
-    # Finds the pylon with more "space" next to it
-    # Where more space == Less units
-    # TODO consider "warpable" space
-    def pylon_with_less_units(self, distance=4):
-        pylons = self.units(PYLON).ready
-
-        good_boy_pylon = None
-        units_next_to_good_boy_pylon = float('inf')
-
-        for pylon in pylons:
-            units_next_to_candidate_pylon = self.units.closer_than(distance, pylon).amount
-
-            if units_next_to_candidate_pylon < units_next_to_good_boy_pylon:
-                good_boy_pylon = pylon
-                units_next_to_good_boy_pylon = units_next_to_candidate_pylon
-
-        return good_boy_pylon
-
-    def can(self, what):
-        if what == 'build_army':
-            return not self.want_to_expand
-
-        if what == 'build_structures':
-            return not self.want_to_expand
-
-        if what == 'build_assimilator':
-            return not self.want_to_expand
-
-        if what == 'expand':
-            return self.want_to_expand
-
-        self.console()
 
     def console(self):
         from IPython.terminal.embed import InteractiveShellEmbed

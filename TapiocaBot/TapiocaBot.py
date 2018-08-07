@@ -16,6 +16,7 @@ from army_manager import ArmyManager
 from build_order_manager import BuildOrderManager
 from robotics_facility_controller import RoboticsFacilitiyController
 from gateway_controller import GatewayController
+from scouting_controller import ScoutingController
 
 
 class TapiocaBot(sc2.BotAI):
@@ -41,13 +42,6 @@ class TapiocaBot(sc2.BotAI):
         # Threat stuff stuff
         self.defending_from = {}
 
-        # Scout stuff
-        self.scouting_units = set()
-        self.number_of_scouting_units = 3
-        self.scout_interval = 30  # Seconds
-        self.scout_timer = 0
-        self.map_size = None
-
         # Expansion and macro stuff
         self.auto_expand_after = 60 * 6.5
         self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
@@ -63,8 +57,8 @@ class TapiocaBot(sc2.BotAI):
         self.forge_research_priority = ['ground_weapons', 'shield']
 
         # Managers and controllers
+        self.scouting_controller = ScoutingController(bot=self, verbose=self.verbose)
         self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose)
-        #self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=True)
         self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=False)
         self.event_manager = EventManager()
         self.build_order_manager = BuildOrderManager(
@@ -101,8 +95,6 @@ class TapiocaBot(sc2.BotAI):
             }
 
     def on_start(self):
-        self.map_size = self.game_info.map_size
-
         self.army_manager.init()
 
         # TODO Tweak these values
@@ -135,6 +127,7 @@ class TapiocaBot(sc2.BotAI):
             self.event_manager.add_event(self.expansion_controller, 5)
             self.event_manager.add_event(self.build_nexus, 5)
             self.event_manager.add_event(self.build_workers, 2.25)
+            self.event_manager.add_event(self.scouting_controller.step, 10)
 
             # Gateway stuff
             self.event_manager.add_event(self.gateway_controller.step, 1.0)
@@ -166,51 +159,6 @@ class TapiocaBot(sc2.BotAI):
 
     async def army_controller(self):
         await self.army_manager.step()
-
-    async def scout_controller(self):
-        current_time = self.time
-        if current_time - self.scout_timer > self.scout_interval:
-            self.scout_timer = self.time
-
-            n_scouting_units_assigned = len(self.scouting_units)
-            missing_scouting_units = self.number_of_scouting_units - n_scouting_units_assigned
-
-            # Uses the previous assigned scouting units to keep scouting
-            for scouting_unit_tag in list(self.scouting_units):
-                unit = self.units.find_by_tag(scouting_unit_tag)
-
-                if unit.exists:
-                    target = random.sample(list(self.expansion_locations), k=1)[0]
-                    await self.do(unit.attack(target))
-                else:
-                    # If a scouting unit isnt found then it is (most likely) dead
-                    # and we need another to replace it
-                    self.scouting_units.remove(unit)
-                    missing_scouting_units += 1
-
-            if missing_scouting_units > 0:
-                idle_stalkers = self.units(STALKER).idle
-
-                if idle_stalkers.exists:
-                    if self.verbose:
-                        print('%6.2f Scouting' % (self.time))
-
-                    # If there is no unit assigned to scouting
-                    # the the idle unit furthest from the base
-                    for i in range(missing_scouting_units):
-                        stalker = idle_stalkers.furthest_to(self.units(NEXUS).first)
-
-                        if stalker:
-                            target = random.sample(list(self.expansion_locations), k=1)[0]
-                            await self.do(stalker.attack(target))
-                            self.scouting_units
-
-                        idle_stalkers = self.units(STALKER).idle
-                        if not idle_stalkers.exists:
-                            break
-                else:
-                    pass
-                    #print('     - no units to scout')
 
     async def defend(self):
         # Attacks units that get too close to import units

@@ -59,7 +59,7 @@ class TapiocaBot(sc2.BotAI):
         # Managers and controllers
         self.scouting_controller = ScoutingController(bot=self, verbose=self.verbose)
         self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose)
-        self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=False)
+        self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=True)
         self.event_manager = EventManager()
         self.build_order_manager = BuildOrderManager(
             build_order='two_gate_fast_expand',
@@ -104,7 +104,6 @@ class TapiocaBot(sc2.BotAI):
         #self.event_manager.add_event(self.build_assimilator, 2.5)
         #self.event_manager.add_event(self.build_structures, 2.4)
         #self.event_manager.add_event(self.build_army, 0.9)
-        #self.event_manager.add_event(self.scout_controller, 7)
         #self.event_manager.add_event(self.army_controller, 1.1)
         self.event_manager.add_event(self.defend, 1)
         #self.event_manager.add_event(self.attack, 3)

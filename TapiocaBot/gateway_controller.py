@@ -1,4 +1,5 @@
 from sc2.constants import *
+import random
 
 
 class GatewayController:
@@ -42,7 +43,7 @@ class GatewayController:
             abilities = await self.bot.get_available_abilities(warpgate)
             if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
                 next_unit = self.get_next_unit()
-                if self.bot.can_afford(next_unit) and self.bot.supply_left > 2:
+                if next_unit is not None and self.bot.can_afford(next_unit) and self.bot.supply_left > 2:
                     # Smartly find a good pylon boy to warp in units next to it
                     pylon = self.bot.pylon_with_less_units()
                     pos = pylon.position.to2.random_on_distance(4)
@@ -91,6 +92,8 @@ class GatewayController:
         for unit_type in unit_types:
             if unit_ratio[unit_type] < unit_priority_ratio[unit_type]:
                 return unit_type
+
+        return random.sample(unit_types, k=1)[0]
 
     async def morph_gateways_into_warpgates(self):
         if self.auto_morph_to_warpgate:

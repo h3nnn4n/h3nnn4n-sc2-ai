@@ -15,6 +15,7 @@ from event_manager import EventManager
 from army_manager import ArmyManager
 from build_order_manager import BuildOrderManager
 from robotics_facility_controller import RoboticsFacilitiyController
+from gateway_controller import GatewayController
 
 
 class TapiocaBot(sc2.BotAI):
@@ -63,6 +64,8 @@ class TapiocaBot(sc2.BotAI):
 
         # Managers and controllers
         self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose)
+        #self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=True)
+        self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=False)
         self.event_manager = EventManager()
         self.build_order_manager = BuildOrderManager(
             build_order='two_gate_fast_expand',
@@ -111,10 +114,9 @@ class TapiocaBot(sc2.BotAI):
         #self.event_manager.add_event(self.build_army, 0.9)
         #self.event_manager.add_event(self.scout_controller, 7)
         #self.event_manager.add_event(self.army_controller, 1.1)
-        #self.event_manager.add_event(self.defend, 2)
+        self.event_manager.add_event(self.defend, 1)
         #self.event_manager.add_event(self.attack, 3)
         self.event_manager.add_event(self.build_order_manager.step, 0.5)
-        self.event_manager.add_event(self.morph_gateways_into_warpgates, 1.0)
 
     async def on_step(self, iteration):
         sys.stdout.flush()
@@ -133,6 +135,15 @@ class TapiocaBot(sc2.BotAI):
             self.event_manager.add_event(self.expansion_controller, 5)
             self.event_manager.add_event(self.build_nexus, 5)
             self.event_manager.add_event(self.build_workers, 2.25)
+
+            # Gateway stuff
+            self.event_manager.add_event(self.gateway_controller.step, 1.0)
+            self.gateway_controller.add_order((SENTRY, 1))
+            self.gateway_controller.add_order((STALKER, 3))
+            self.gateway_controller.add_order((ZEALOT, 2))
+            self.gateway_controller.add_order((ADEPT, 1))
+
+            # Robo stuff
             self.event_manager.add_event(self.robotics_facility_controller.step, 1.0)
 
             self.robotics_facility_controller.add_order(OBSERVER)
@@ -145,41 +156,6 @@ class TapiocaBot(sc2.BotAI):
             await event()
 
         await self.debug()
-
-    async def morph_gateways_into_warpgates(self):
-        for gateway in self.units(GATEWAY).ready:
-            abilities = await self.get_available_abilities(gateway)
-            if AbilityId.MORPH_WARPGATE in abilities and self.can_afford(AbilityId.MORPH_WARPGATE):
-                await self.do(gateway(MORPH_WARPGATE))
-
-    async def warpin_unit(self, unit=STALKER):
-        for warpgate in self.units(WARPGATE).ready:
-            abilities = await self.get_available_abilities(warpgate)
-            if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
-                if self.can_afford(unit) and self.supply_left > 2:
-                    # Smartly find a good pylon boy to warp in units next to it
-                    pylon = self.pylon_with_less_units()
-                    pos = pylon.position.to2.random_on_distance(4)
-                    placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
-
-                    if placement:
-                        await self.do(warpgate.warp_in(unit, placement))
-                        return True
-                    else:
-                        # otherwise just brute force it
-                        for _ in range(10):  # TODO tweak this
-                            pylon = self.units(PYLON).ready.random
-                            pos = pylon.position.to2
-                            placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
-
-                            if placement is None:
-                                if self.verbose:
-                                    print("%6.2f can't place" % (self.time))
-                                return False
-
-                            await self.do(warpgate.warp_in(unit, placement))
-                            return True
-        return False
 
     async def expansion_controller(self):
         if self.time > self.auto_expand_after:

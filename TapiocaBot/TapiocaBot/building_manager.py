@@ -11,10 +11,13 @@ class BuildingManager:
         self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
         self.auto_expand_gas_thresehold = 15
         self.gateways_per_nexus = 2
+        self.robotics_facility_per_nexus = 1
         self.want_to_expand = False
 
     async def step(self):
         await self.step_auto_build_assimilators()
+        await self.step_auto_build_gateways()
+        await self.step_auto_build_robotics_facility()
 
     async def step_auto_build_assimilators(self):
         total_workers_on_gas = 0
@@ -24,30 +27,50 @@ class BuildingManager:
         if total_workers_on_gas < self.auto_expand_gas_thresehold and self.bot.units(ASSIMILATOR).amount < self.bot.units(NEXUS).amount * 2:
             await self.build_assimilator()
 
+    async def step_auto_build_gateways(self):
+        number_of_gateways = self.bot.units(GATEWAY).amount + self.bot.units(WARPGATE).amount
+        pylon = self.bot.units(PYLON).random
+
+        if self.bot.can_afford(GATEWAY) and self.bot.units(CYBERNETICSCORE).ready and \
+           (number_of_gateways < self.bot.units(NEXUS).amount * self.gateways_per_nexus):
+            if self.verbose:
+                print('%8.2f %3d Building more Gateways' % (self.bot.time, self.bot.supply_used))
+            await self.bot.build(GATEWAY, near=pylon)
+
+    async def step_auto_build_robotics_facility(self):
+        pylon = self.bot.units(PYLON).random
+
+        if self.bot.can_afford(ROBOTICSFACILITY) and self.bot.units(CYBERNETICSCORE).ready and \
+           (self.bot.units(NEXUS).amount > 1) and \
+           (self.bot.units(ROBOTICSFACILITY).amount < self.bot.units(NEXUS).amount * self.robotics_facility_per_nexus):
+            if self.verbose:
+                print('%8.2f %3d Building more Robotics Facility' % (self.bot.time, self.bot.supply_used))
+            await self.bot.build(ROBOTICSFACILITY, near=pylon)
+
     async def build_structures(self):
         if not self.can('build_structures'):
             return
 
         # Only start building main structures if there is
         # at least one pylon
-        if not self.units(PYLON).ready.exists:
+        if not self.bot.units(PYLON).ready.exists:
             return
         else:
-            pylon = self.units(PYLON).ready.random
+            pylon = self.bot.units(PYLON).ready.random
 
         # Build 2 forges
-        if self.time > self.start_forge_after and self.units(FORGE).amount < 2:
-            if self.can_afford(FORGE) and not self.already_pending(FORGE):
+        if self.bot.time > self.bot.start_forge_after and self.bot.units(FORGE).amount < 2:
+            if self.bot.can_afford(FORGE) and not self.bot.already_pending(FORGE):
                 if self.verbose:
-                    print('%6.2f building forge' % (self.time))
-                await self.build(FORGE, near=pylon)
+                    print('%8.2f %3d Building Forge' % (self.bot.time, self.bot.supply_used))
+                await self.bot.build(FORGE, near=pylon)
 
         # Build twilight council
-        if self.units(FORGE).ready.amount >= 2 and self.units(TWILIGHTCOUNCIL).amount == 0:
-            if self.can_afford(TWILIGHTCOUNCIL) and not self.already_pending(TWILIGHTCOUNCIL):
+        if self.bot.units(FORGE).ready.amount >= 2 and self.bot.units(TWILIGHTCOUNCIL).amount == 0:
+            if self.bot.can_afford(TWILIGHTCOUNCIL) and not self.bot.already_pending(TWILIGHTCOUNCIL):
                 if self.verbose:
-                    print('%6.2f building twilight council' % (self.time))
-                await self.build(TWILIGHTCOUNCIL, near=pylon)
+                    print('%8.2f %3d Building Twilight Council' % (self.bot.time, self.bot.supply_used))
+                await self.bot.build(TWILIGHTCOUNCIL, near=pylon)
 
     async def build_nexus(self):
         if not self.can('expand'):
@@ -55,7 +78,7 @@ class BuildingManager:
 
         if not self.bot.already_pending(NEXUS) and self.bot.can_afford(NEXUS):
             if self.verbose:
-                print('%6.2f expanding' % (self.bot.time))
+                print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))
 
             await self.bot.expand_now()
             self.want_to_expand = False

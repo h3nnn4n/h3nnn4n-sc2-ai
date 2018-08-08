@@ -30,8 +30,14 @@ class TapiocaBot(sc2.BotAI):
         # Attack stuff
         self.army_manager = ArmyManager(bot=self)
         self.attack_target = None
-        self.units_available_for_attack = {ZEALOT: 'ZEALOT', STALKER: 'STALKER', IMMORTAL: 'IMMORTAL'}
         self.minimum_army_size = 15
+        self.units_available_for_attack = {
+            ZEALOT: 'ZEALOT',
+            ADEPT: 'ADEPT',
+            SENTRY: 'SENTRY',
+            STALKER: 'STALKER',
+            IMMORTAL: 'IMMORTAL',
+        }
 
         # Defense stuff
         self.threat_proximity = 20
@@ -121,10 +127,8 @@ class TapiocaBot(sc2.BotAI):
 
             # Gateway stuff
             self.event_manager.add_event(self.gateway_controller.step, 1.0)
-            self.gateway_controller.add_order((SENTRY, 1))
-            self.gateway_controller.add_order((STALKER, 3))
-            self.gateway_controller.add_order((ZEALOT, 2))
-            self.gateway_controller.add_order((ADEPT, 1))
+            self.gateway_controller.add_order((STALKER, 2))
+            self.gateway_controller.add_order((ZEALOT, 1))
 
             # Robo stuff
             self.event_manager.add_event(self.robotics_facility_controller.step, 1.0)

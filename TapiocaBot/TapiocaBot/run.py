@@ -7,13 +7,13 @@ from TapiocaBot import TapiocaBot
 
 
 if __name__ == '__main__':
-    bot = Bot(Race.Protoss, TapiocaBot())
-
     if "--LadderServer" in sys.argv:
+        bot = Bot(Race.Protoss, TapiocaBot())
         print("Starting ladder game...")
         run_ladder_game(bot)
     else:
         print("Starting local game...")
+        bot = Bot(Race.Protoss, TapiocaBot(verbose=True, visual_debug=True))
         sc2.run_game(sc2.maps.get("Abyssal Reef LE"), [
             bot,
             Computer(Race.Protoss, Difficulty.VeryHard)

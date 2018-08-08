@@ -19,9 +19,9 @@ from building_manager import BuildingManager
 
 
 class TapiocaBot(sc2.BotAI):
-    def __init__(self):
-        self.verbose = True
-        self.visual_debug = False
+    def __init__(self, verbose=False, visual_debug=False):
+        self.verbose = verbose
+        self.visual_debug = visual_debug
 
         # Control Stuff
         self.researched_warpgate = False

@@ -1,5 +1,3 @@
-from patch_path import patch_path
-patch_path()
 import sys
 import sc2
 from __init__ import run_ladder_game

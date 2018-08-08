@@ -29,18 +29,18 @@ class BuildingManager:
 
     async def step_auto_build_gateways(self):
         number_of_gateways = self.bot.units(GATEWAY).amount + self.bot.units(WARPGATE).amount
-        pylon = self.bot.units(PYLON).random
+        pylon = self.get_pylon()
 
-        if self.bot.can_afford(GATEWAY) and self.bot.units(CYBERNETICSCORE).ready and \
+        if pylon is not None and self.bot.can_afford(GATEWAY) and self.bot.units(CYBERNETICSCORE).ready and \
            (number_of_gateways < self.bot.units(NEXUS).amount * self.gateways_per_nexus):
             if self.verbose:
                 print('%8.2f %3d Building more Gateways' % (self.bot.time, self.bot.supply_used))
             await self.bot.build(GATEWAY, near=pylon)
 
     async def step_auto_build_robotics_facility(self):
-        pylon = self.bot.units(PYLON).random
+        pylon = self.get_pylon()
 
-        if self.bot.can_afford(ROBOTICSFACILITY) and self.bot.units(CYBERNETICSCORE).ready and \
+        if pylon is not None and self.bot.can_afford(ROBOTICSFACILITY) and self.bot.units(CYBERNETICSCORE).ready and \
            (self.bot.units(NEXUS).amount > 1) and \
            (self.bot.units(ROBOTICSFACILITY).amount < self.bot.units(NEXUS).amount * self.robotics_facility_per_nexus):
             if self.verbose:
@@ -157,6 +157,12 @@ class BuildingManager:
 
             if number_of_minerals <= self.auto_expand_mineral_threshold:
                 self.want_to_expand = True
+
+    def get_pylon(self):
+        pylon = self.bot.units(PYLON).ready
+        if pylon.amount > 0:
+            return pylon.random
+        return None
 
     def can(self, what):
         if what == 'build_army':

@@ -1,6 +1,6 @@
 {
 	"Bots": {
-		"CreepyBot": {
+		"SpatialLlama": {
 			"Race": "Protoss",
 			"Type": "Python",
 			"RootPath": "SpatialLlama",

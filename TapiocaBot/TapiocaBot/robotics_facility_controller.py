@@ -1,4 +1,5 @@
-from sc2.constants import ROBOTICSFACILITY
+from sc2.constants import ROBOTICSFACILITY, OBSERVER, IMMORTAL, COLOSSUS, \
+                          WARPPRISM, DISRUPTOR
 from collections import deque
 
 
@@ -22,13 +23,12 @@ class RoboticsFacilitiyController:
         }
 
     async def step(self):
-        if self.bot.supply_left >= 4:
         robos = self.bot.units(ROBOTICSFACILITY).ready.noqueue
 
         for robo in robos:
             next_unit = self.get_next_unit()
 
-            if next_unit is None or self.supply_needed[next_unit] < self.bot.supply_left:
+            if next_unit is None or self.supply_needed[next_unit] > self.bot.supply_left:
                 return
 
             if self.bot.can_afford(next_unit):

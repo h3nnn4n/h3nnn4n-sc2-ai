@@ -243,8 +243,9 @@ class TapiocaBot(sc2.BotAI):
 
     async def build_workers(self):
         nexus = self.units(NEXUS).ready.noqueue
+        n_workers = self.units(PROBE).amount
 
-        if nexus and self.workers.amount < self.units(NEXUS).amount * 22 and self.workers.amount < self.maximum_workers:
+        if nexus and n_workers < self.units(NEXUS).amount * 22 and n_workers < self.maximum_workers:
             if self.can_afford(PROBE) and self.supply_left >= 1:
                 await self.do(nexus.random.train(PROBE))
 
@@ -274,6 +275,7 @@ class TapiocaBot(sc2.BotAI):
             '       n_workers: %3d' % self.units(PROBE).amount,
             '       n_zealots: %3d' % self.units(ZEALOT).amount,
             '      n_stalkers: %3d' % self.units(STALKER).amount,
+            '     n_immortals: %3d' % self.units(IMMORTAL).amount,
             '       idle_army: %3d' % total_units,
             '       army_size: %3d' % self.army_manager.army_size(),
             '     ememy_units: %3d' % self.known_enemy_units.amount,

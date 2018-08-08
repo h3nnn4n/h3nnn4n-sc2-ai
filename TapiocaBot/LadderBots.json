@@ -1,0 +1,10 @@
+{
+	"Bots": {
+		"TapiocaBot": {
+			"Race": "Protoss",
+			"Type": "Python",
+			"RootPath": "TapiocaBot",
+			"FileName": "run.py"
+		}
+	}
+}

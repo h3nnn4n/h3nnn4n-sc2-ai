@@ -9,11 +9,20 @@ class BuildingManager:
 
         self.auto_expand_after = 60 * 6.5
         self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
+        self.auto_expand_gas_thresehold = 15
         self.gateways_per_nexus = 2
         self.want_to_expand = False
 
     async def step(self):
-        pass
+        await self.step_auto_build_assimilators()
+
+    async def step_auto_build_assimilators(self):
+        total_workers_on_gas = 0
+        for geyser in self.bot.geysers:
+            total_workers_on_gas += geyser.assigned_harvesters
+
+        if total_workers_on_gas < self.auto_expand_gas_thresehold and self.bot.units(ASSIMILATOR).amount < self.bot.units(NEXUS).amount * 2:
+            await self.build_assimilator()
 
     async def build_structures(self):
         if not self.can('build_structures'):

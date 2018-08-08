@@ -34,7 +34,7 @@ class RoboticsFacilitiyController:
 
     def get_next_unit(self):
         if len(self.pending) == 0:
-            if self.can_idle:
+            if not self.can_idle:
                 return self.on_idle_build
             else:
                 return None
@@ -42,4 +42,5 @@ class RoboticsFacilitiyController:
             return self.pending[0]
 
     def queue_step(self):
-        self.pending.popleft()
+        if len(self.pending) > 0:
+            self.pending.popleft()

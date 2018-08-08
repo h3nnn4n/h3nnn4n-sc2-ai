@@ -44,12 +44,12 @@ class TapiocaBot(sc2.BotAI):
         self.defending_from = {}
 
         # Research stuff
-        self.start_forge_after = 240  # seconds - 4min
+        self.start_forge_after = 60 * 3  # seconds
         self.forge_research_priority = ['ground_weapons', 'shield']
 
         # Managers and controllers
         self.scouting_controller = ScoutingController(bot=self, verbose=self.verbose)
-        self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose)
+        self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose, on_idle_build=IMMORTAL)
         self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=True)
         self.building_manager = BuildingManager(bot=self, verbose=self.verbose)
         self.event_manager = EventManager()

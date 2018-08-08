@@ -17,11 +17,9 @@ class GatewayController:
     async def step(self):
         await self.morph_gateways_into_warpgates()
 
-        if self.bot.supply_left < 2:
-            return
-
-        await self.step_gateways()
-        await self.step_warpgates()
+        if self.bot.supply_left >= 2:
+            await self.step_gateways()
+            await self.step_warpgates()
 
     async def step_gateways(self):
         gateways = self.bot.units(GATEWAY).ready.noqueue

@@ -1,5 +1,3 @@
-from patch_path import patch_path
-patch_path()
 import argparse
 import sys
 import asyncio

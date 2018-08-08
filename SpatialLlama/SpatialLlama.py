@@ -1,5 +1,3 @@
-from patch_path import patch_path
-patch_path()
 import numpy as np
 import random
 import sys
@@ -52,10 +50,10 @@ class SpatialLlama(sc2.BotAI):
         self.auto_expand_after = 300 # 5 Minutes
         self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
         self.maximum_workers = 80
-        self.gateways_per_nexus = 4
+        self.gateways_per_nexus = 2
 
         # Research stuff
-        self.start_forge_after = 240  # seconds - 4min
+        self.start_forge_after = 180  # seconds - 4min
         self.forge_research_priority = ['ground_weapons', 'shield']
 
         self.event_manager = EventManager()
@@ -96,7 +94,7 @@ class SpatialLlama(sc2.BotAI):
         self.army_manager.init()
 
         # TODO Tweak these values
-        self.event_manager.add_event(self.distribute_workers, 5)
+        self.event_manager.add_event(self.distribute_workers, 10)
         self.event_manager.add_event(self.manage_upgrades, 5.3)
         self.event_manager.add_event(self.build_workers, 2.25)
         self.event_manager.add_event(self.manage_supply, 1)
@@ -271,29 +269,27 @@ class SpatialLlama(sc2.BotAI):
         # Iterates over all warpgates and warp in stalkers
         for warpgate in self.units(WARPGATE).ready:
             abilities = await self.get_available_abilities(warpgate)
-            if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
+            if AbilityId.WARPGATETRAIN_STALKER in abilities:
                 if self.can_afford(STALKER) and self.supply_left > 2:
                     # Smartly find a good pylon boy to warp in units next to it
                     pylon = self.pylon_with_less_units()
-                    pos = pylon.position.to2.random_on_distance(4)
-                    placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+                    #pos = pylon.position.to2.random_on_distance(4)
+                    pos = pylon.position.to2
+                    placement = await self.find_placement(PYLON, pos, placement_step=1, max_distance=4)
 
-                    if placement:
+                    if placement is not None:
                         await self.do(warpgate.warp_in(STALKER, placement))
                     else:
-                        # otherwise just brute force it
-                        for _ in range(10):  # TODO tweak this
+                         # otherwise just brute force it
+                        for _ in range(5):  # TODO tweak this
                             pylon = self.units(PYLON).ready.random
-                            pos = pylon.position.to2.random_on_distance(4)
-                            placement = await self.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+                            #pos = pylon.position.to2.random_on_distance(4)
+                            pos = pylon.position.to2
+                            placement = await self.find_placement(PYLON, pos, placement_step=1, max_distance=4)
 
-                            if placement is None:
-                                if self.verbose:
-                                    print("%6.2f can't place" % (self.time))
-                                return
-
-                            await self.do(warpgate.warp_in(STALKER, placement))
-                            continue
+                            if placement is not None:
+                                await self.do(warpgate.warp_in(STALKER, placement))
+                                break
 
     async def build_structures(self):
         if not self.can('build_structures'):
@@ -385,7 +381,7 @@ class SpatialLlama(sc2.BotAI):
     async def build_workers(self):
         nexus = self.units(NEXUS).ready.noqueue
 
-        if nexus and self.workers.amount < self.units(NEXUS).amount * 22 and self.workers.amount < self.maximum_workers:
+        if nexus and self.units(PROBE).amount < self.maximum_workers and self.workers.amount < self.units(NEXUS).amount * 22:
             if self.can_afford(PROBE) and self.supply_left > 2:
                 await self.do(nexus.random.train(PROBE))
 
@@ -496,6 +492,15 @@ class SpatialLlama(sc2.BotAI):
                     leader_unit = self.units.find_by_tag(leader_tag)
                     if leader_unit is not None:
                         self._client.debug_line_out(leader_unit, soldier_unit, color=(0, 255, 255))
+
+        # pylon
+        pylon = self.pylon_with_less_units()
+        if pylon is not None:
+            pos = pylon.position3d
+            self._client.debug_sphere_out(pos, r=1, color=(0, 255, 0))
+            self._client.debug_sphere_out(pos, r=2, color=(0, 255, 0))
+            self._client.debug_sphere_out(pos, r=3, color=(0, 255, 0))
+            self._client.debug_sphere_out(pos, r=4, color=(0, 255, 0))
 
         # Sens the debug info to the game
         await self._client.send_debug()

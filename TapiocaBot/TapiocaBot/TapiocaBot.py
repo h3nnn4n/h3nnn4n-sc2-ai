@@ -32,7 +32,7 @@ class TapiocaBot(sc2.BotAI):
         # Attack stuff
         self.army_manager = ArmyManager(bot=self)
         self.attack_target = None
-        self.units_available_for_attack = {ZEALOT: 'ZEALOT', STALKER: 'STALKER'}
+        self.units_available_for_attack = {ZEALOT: 'ZEALOT', STALKER: 'STALKER', IMMORTAL: 'IMMORTAL'}
         self.minimum_army_size = 15
 
         # Defense stuff
@@ -96,9 +96,9 @@ class TapiocaBot(sc2.BotAI):
         #self.event_manager.add_event(self.build_assimilator, 2.5)
         #self.event_manager.add_event(self.build_structures, 2.4)
         #self.event_manager.add_event(self.build_army, 0.9)
-        #self.event_manager.add_event(self.army_controller, 1.1)
+        self.event_manager.add_event(self.army_controller, 1.1)
         self.event_manager.add_event(self.defend, 1)
-        #self.event_manager.add_event(self.attack, 3)
+        self.event_manager.add_event(self.attack, 3)
         self.event_manager.add_event(self.build_order_manager.step, 0.5)
 
     async def on_step(self, iteration):

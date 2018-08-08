@@ -85,13 +85,14 @@ class GatewayController:
             total_units += unit_ratio[unit_type]
             priority_divident += self.unit_priority[unit_type]
 
-        for unit_type in unit_types:
-            unit_ratio[unit_type] /= total_units
-            unit_priority_ratio[unit_type] /= priority_divident
+        if total_units > 0 and priority_divident > 0:
+            for unit_type in unit_types:
+                unit_ratio[unit_type] /= total_units
+                unit_priority_ratio[unit_type] /= priority_divident
 
-        for unit_type in unit_types:
-            if unit_ratio[unit_type] < unit_priority_ratio[unit_type]:
-                return unit_type
+            for unit_type in unit_types:
+                if unit_ratio[unit_type] < unit_priority_ratio[unit_type]:
+                    return unit_type
 
         return random.sample(unit_types, k=1)[0]
 

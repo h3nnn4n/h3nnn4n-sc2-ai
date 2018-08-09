@@ -43,7 +43,10 @@ class ScoutingController:
                     # If there is no unit assigned to scouting
                     # the the idle unit furthest from the base
                     for i in range(missing_scouting_units):
-                        stalker = idle_stalkers.furthest_to(self.bot.units(NEXUS).first)
+                        if self.bot.units(NEXUS).amount > 0:
+                            stalker = idle_stalkers.furthest_to(self.bot.units(NEXUS).first)
+                        else:
+                            staker = idle_stalkers.random
 
                         if stalker:
                             target = random.sample(list(self.bot.expansion_locations), k=1)[0]

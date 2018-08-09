@@ -2,9 +2,9 @@ from random import sample
 
 
 class ArmyManager:
-    def __init__(self, bot=None):
+    def __init__(self, bot=None, verbose=False):
         self.bot = bot
-        self.verbose = True
+        self.verbose = verbose
 
         self.soldiers = {}
         self.leader = None

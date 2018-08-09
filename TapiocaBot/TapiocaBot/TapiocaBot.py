@@ -10,13 +10,18 @@ from sc2.units import Units
 from sc2.position import Point2, Point3
 
 from event_manager import EventManager
-from army_manager import ArmyManager
 from build_order_manager import BuildOrderManager
 from robotics_facility_controller import RoboticsFacilitiyController
 from gateway_controller import GatewayController
 from scouting_controller import ScoutingController
 from building_manager import BuildingManager
 from upgrades_controller import UpgradesController
+
+use_old_army_manager = False
+if use_old_army_manager:
+    from army_manager import ArmyManager
+else:
+    from army_manager2 import ArmyManager
 
 
 class TapiocaBot(sc2.BotAI):
@@ -29,7 +34,7 @@ class TapiocaBot(sc2.BotAI):
         self.maximum_workers = 66
 
         # Attack stuff
-        self.army_manager = ArmyManager(bot=self)
+        self.army_manager = ArmyManager(bot=self, verbose=self.verbose)
         self.attack_target = None
         self.minimum_army_size = 15
         self.units_available_for_attack = {
@@ -71,10 +76,10 @@ class TapiocaBot(sc2.BotAI):
         #self.event_manager.add_event(self.build_assimilator, 2.5)
         #self.event_manager.add_event(self.build_structures, 2.4)
         #self.event_manager.add_event(self.build_army, 0.9)
-        self.event_manager.add_event(self.army_controller, 1.1)
         self.event_manager.add_event(self.defend, 1)
-        self.event_manager.add_event(self.attack, 3)
+        #self.event_manager.add_event(self.attack, 3)
         self.event_manager.add_event(self.build_order_manager.step, 0.5)
+        self.event_manager.add_event(self.army_manager.step, 1.1)
 
     async def on_step(self, iteration):
         sys.stdout.flush()
@@ -115,9 +120,6 @@ class TapiocaBot(sc2.BotAI):
             await event()
 
         await self.debug()
-
-    async def army_controller(self):
-        await self.army_manager.step()
 
     async def defend(self):
         # Attacks units that get too close to import units

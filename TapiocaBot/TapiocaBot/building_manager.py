@@ -7,6 +7,9 @@ class BuildingManager:
         self.verbose = verbose
         self.bot = bot
 
+        self.pylons_per_round = 3
+        self.start_forge_after = 60 * 5  # seconds
+        self.number_of_forges = 2
         self.auto_expand_after = 60 * 6.5
         self.auto_expand_mineral_threshold = 22 # Should be 2.5 ~ 3 fully saturated bases
         self.auto_expand_gas_thresehold = 15
@@ -18,6 +21,8 @@ class BuildingManager:
         await self.step_auto_build_assimilators()
         await self.step_auto_build_gateways()
         await self.step_auto_build_robotics_facility()
+        await self.step_auto_build_forge()
+        await self.step_auto_build_twilight_council()
 
     async def step_auto_build_assimilators(self):
         total_workers_on_gas = 0
@@ -47,41 +52,31 @@ class BuildingManager:
                 print('%8.2f %3d Building more Robotics Facility' % (self.bot.time, self.bot.supply_used))
             await self.bot.build(ROBOTICSFACILITY, near=pylon)
 
-    async def build_structures(self):
-        if not self.can('build_structures'):
-            return
+    async def step_auto_build_forge(self):
+        pylon = self.get_pylon()
 
-        # Only start building main structures if there is
-        # at least one pylon
-        if not self.bot.units(PYLON).ready.exists:
-            return
-        else:
-            pylon = self.bot.units(PYLON).ready.random
-
-        # Build 2 forges
-        if self.bot.time > self.bot.start_forge_after and self.bot.units(FORGE).amount < 2:
+        if self.bot.time > self.start_forge_after and self.bot.units(FORGE).amount < self.number_of_forges:
             if self.bot.can_afford(FORGE) and not self.bot.already_pending(FORGE):
+                await self.bot.build(FORGE, near=pylon)
                 if self.verbose:
                     print('%8.2f %3d Building Forge' % (self.bot.time, self.bot.supply_used))
-                await self.bot.build(FORGE, near=pylon)
 
-        # Build twilight council
-        if self.bot.units(FORGE).ready.amount >= 2 and self.bot.units(TWILIGHTCOUNCIL).amount == 0:
+    async def step_auto_build_twilight_council(self):
+        if self.bot.units(FORGE).ready.amount >= 1 and self.bot.units(TWILIGHTCOUNCIL).amount == 0:
             if self.bot.can_afford(TWILIGHTCOUNCIL) and not self.bot.already_pending(TWILIGHTCOUNCIL):
+                await self.bot.build(TWILIGHTCOUNCIL, near=pylon)
                 if self.verbose:
                     print('%8.2f %3d Building Twilight Council' % (self.bot.time, self.bot.supply_used))
-                await self.bot.build(TWILIGHTCOUNCIL, near=pylon)
 
     async def build_nexus(self):
         if not self.can('expand'):
             return
 
         if not self.bot.already_pending(NEXUS) and self.bot.can_afford(NEXUS):
-            if self.verbose:
-                print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))
-
             await self.bot.expand_now()
             self.want_to_expand = False
+            if self.verbose:
+                print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))
 
     # Finds the pylon with more "space" next to it
     # Where more space == Less units
@@ -122,15 +117,16 @@ class BuildingManager:
             nexus = nexus.random
 
             if self.bot.supply_left < 8 and not self.bot.already_pending(PYLON):
-                if self.bot.can_afford(PYLON):
-                    pos = await self.bot.find_placement(PYLON, nexus.position, placement_step=2)
-                    mineral_fields = self.bot.state.mineral_field.closer_than(8, nexus).closer_than(4, pos)
+                for _ in range(self.pylons_per_round):
+                    if self.bot.can_afford(PYLON):
+                        pos = await self.bot.find_placement(PYLON, nexus.position, placement_step=2)
+                        mineral_fields = self.bot.state.mineral_field.closer_than(8, nexus).closer_than(4, pos)
 
-                    if mineral_fields:
-                        continue
-                    else:
-                        await self.bot.build(PYLON, near=pos)
-                        break
+                        if mineral_fields:
+                            continue
+                        else:
+                            await self.bot.build(PYLON, near=pos)
+                            break
 
     async def build_pylon(self):
         for tries in range(5):  # Only tries 5 different placements

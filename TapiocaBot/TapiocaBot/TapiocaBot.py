@@ -16,6 +16,7 @@ from robotics_facility_controller import RoboticsFacilitiyController
 from gateway_controller import GatewayController
 from scouting_controller import ScoutingController
 from building_manager import BuildingManager
+from upgrades_controller import UpgradesController
 
 
 class TapiocaBot(sc2.BotAI):
@@ -47,12 +48,9 @@ class TapiocaBot(sc2.BotAI):
         # Threat stuff stuff
         self.defending_from = {}
 
-        # Research stuff
-        self.start_forge_after = 60 * 3  # seconds
-        self.forge_research_priority = ['ground_weapons', 'shield']
-
         # Managers and controllers
         self.scouting_controller = ScoutingController(bot=self, verbose=self.verbose)
+        self.upgrades_controller = UpgradesController(bot=self, verbose=self.verbose)
         self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose, on_idle_build=IMMORTAL)
         self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=True)
         self.building_manager = BuildingManager(bot=self, verbose=self.verbose)
@@ -62,33 +60,6 @@ class TapiocaBot(sc2.BotAI):
             verbose=self.verbose,
             bot=self
         )
-
-        self.upgrades = {
-            'ground_weapons': [
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1,
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2,
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3],
-            'ground_armor': [
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1,
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2,
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3],
-            'shield' : [
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL1,
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL2,
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL3]
-            }
-
-        self.upgrade_names = {
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1: 'GROUND WEAPONS 1',
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2: 'GROUND WEAPONS 2',
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3: 'GROUND WEAPONS 2',
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1: 'GROUND ARMOR 2',
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2: 'GROUND ARMOR 2',
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3: 'GROUND ARMOR 2',
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL1: 'SHIELDS 1',
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL2: 'SHIELDS 2',
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL3: 'SHIELDS 3'
-            }
 
     def on_start(self):
         self.army_manager.init()
@@ -124,6 +95,7 @@ class TapiocaBot(sc2.BotAI):
             self.event_manager.add_event(self.build_workers, 2.25)
             self.event_manager.add_event(self.scouting_controller.step, 10)
             self.event_manager.add_event(self.building_manager.step, 2)
+            self.event_manager.add_event(self.upgrades_controller.step, 5)
 
             # Gateway stuff
             self.event_manager.add_event(self.gateway_controller.step, 1.0)
@@ -143,10 +115,6 @@ class TapiocaBot(sc2.BotAI):
             await event()
 
         await self.debug()
-
-    async def manage_upgrades(self):
-        await self.manage_cyberbetics_upgrades()
-        await self.manage_forge_upgrades()
 
     async def army_controller(self):
         await self.army_manager.step()
@@ -217,29 +185,6 @@ class TapiocaBot(sc2.BotAI):
 
                 if self.verbose:
                     print('%6.2f reinforcing with %d units' % (self.time, total_units))
-
-    async def manage_cyberbetics_upgrades(self):
-        if self.units(CYBERNETICSCORE).ready.exists and self.can_afford(RESEARCH_WARPGATE) and not self.researched_warpgate:
-            ccore = self.units(CYBERNETICSCORE).ready.first
-            await self.do(ccore(RESEARCH_WARPGATE))
-            self.researched_warpgate = True
-
-            if self.verbose:
-                print('%6.2f researching warpgate' % (self.time))
-
-    async def manage_forge_upgrades(self):
-        for forge in self.units(FORGE).ready.noqueue:
-            abilities = await self.get_available_abilities(forge)
-
-            for upgrade_type in self.forge_research_priority:
-                for upgrade in self.upgrades[upgrade_type]:
-                    sys.stdout.flush()
-                    if upgrade in abilities and self.can_afford(upgrade):
-                        if self.verbose:
-                            print('%6.2f researching %s' % (self.time, self.upgrade_names[upgrade]))
-
-                        await self.do(forge(upgrade))
-                        break
 
     async def build_workers(self):
         nexus = self.units(NEXUS).ready.noqueue

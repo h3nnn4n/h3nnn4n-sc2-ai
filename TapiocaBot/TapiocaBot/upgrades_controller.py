@@ -1,0 +1,63 @@
+from sc2.constants import *
+import random
+
+
+class UpgradesController:
+    def __init__(self, bot=None, verbose=False):
+        self.verbose = verbose
+        self.bot = bot
+
+        self.forge_research_priority = ['ground_weapons', 'shield']
+
+        self.upgrades = {
+            'ground_weapons': [
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1,
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2,
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3],
+            'ground_armor': [
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1,
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2,
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3],
+            'shield' : [
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL1,
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL2,
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL3]
+            }
+
+        self.upgrade_names = {
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1: 'GROUND WEAPONS 1',
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2: 'GROUND WEAPONS 2',
+                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3: 'GROUND WEAPONS 2',
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1: 'GROUND ARMOR 2',
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2: 'GROUND ARMOR 2',
+                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3: 'GROUND ARMOR 2',
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL1: 'SHIELDS 1',
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL2: 'SHIELDS 2',
+                FORGERESEARCH_PROTOSSSHIELDSLEVEL3: 'SHIELDS 3'
+            }
+
+    async def step(self):
+        await self.manage_cyberbetics_upgrades()
+        await self.manage_forge_upgrades()
+
+    async def manage_cyberbetics_upgrades(self):
+        if self.bot.units(CYBERNETICSCORE).ready.exists and self.bot.can_afford(RESEARCH_WARPGATE) and not self.bot.researched_warpgate:
+            ccore = self.bot.units(CYBERNETICSCORE).ready.first
+            await self.bot.do(ccore(RESEARCH_WARPGATE))
+            self.bot.researched_warpgate = True
+
+            if self.verbose:
+                print('%8.2f %3d Researching warpgate' % (self.bot.time, self.bot.supply_used))
+
+    async def manage_forge_upgrades(self):
+        for forge in self.bot.units(FORGE).ready.noqueue:
+            abilities = await self.bot.get_available_abilities(forge)
+
+            for upgrade_type in self.forge_research_priority:
+                for upgrade in self.upgrades[upgrade_type]:
+                    if upgrade in abilities and self.bot.can_afford(upgrade):
+                        if self.verbose:
+                            print('%8.2f %3d Researching %s' % (self.bot.time, self.bot.supply_used, self.upgrade_names[upgrade]))
+
+                        await self.bot.do(forge(upgrade))
+                        break

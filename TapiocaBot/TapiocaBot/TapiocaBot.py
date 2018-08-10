@@ -66,6 +66,8 @@ class TapiocaBot(sc2.BotAI):
             bot=self
         )
 
+        self.order_queue = []
+
     def on_start(self):
         self.army_manager.init()
 
@@ -120,6 +122,15 @@ class TapiocaBot(sc2.BotAI):
             await event()
 
         await self.debug()
+
+        await self.execute_order_queue()
+
+    async def do(self, action):
+        self.order_queue.append(action)
+
+    async def execute_order_queue(self):
+        await self._client.actions(self.order_queue, game_data=self._game_data)
+        self.order_queue = []
 
     async def defend(self):
         # Attacks units that get too close to import units

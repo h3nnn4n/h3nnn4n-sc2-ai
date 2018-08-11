@@ -46,7 +46,7 @@ class ScoutingController:
                         if self.bot.units(NEXUS).amount > 0:
                             stalker = idle_stalkers.furthest_to(self.bot.units(NEXUS).first)
                         else:
-                            staker = idle_stalkers.random
+                            stalker = idle_stalkers.random
 
                         if stalker:
                             target = random.sample(list(self.bot.expansion_locations), k=1)[0]

@@ -41,7 +41,10 @@ class BuildingManager:
         number_of_gateways = self.bot.units(GATEWAY).amount + self.bot.units(WARPGATE).amount
         pylon = self.get_pylon()
 
-        if pylon is not None and self.bot.can_afford(GATEWAY) and self.bot.units(CYBERNETICSCORE).ready and \
+        if pylon is None:
+            return
+
+        if self.bot.can_afford(GATEWAY) and self.bot.units(CYBERNETICSCORE).ready and \
            (number_of_gateways < self.bot.units(NEXUS).amount * self.gateways_per_nexus):
             if self.verbose:
                 print('%8.2f %3d Building more Gateways' % (self.bot.time, self.bot.supply_used))
@@ -53,7 +56,10 @@ class BuildingManager:
 
         pylon = self.get_pylon()
 
-        if pylon is not None and self.bot.can_afford(ROBOTICSFACILITY) and self.bot.units(CYBERNETICSCORE).ready and \
+        if pylon is None:
+            return
+
+        if self.bot.can_afford(ROBOTICSFACILITY) and self.bot.units(CYBERNETICSCORE).ready and \
            (self.bot.units(NEXUS).amount > 1) and \
            (self.bot.units(ROBOTICSFACILITY).amount < self.bot.units(NEXUS).amount * self.robotics_facility_per_nexus):
             if self.verbose:
@@ -66,6 +72,9 @@ class BuildingManager:
 
         pylon = self.get_pylon()
 
+        if pylon is None:
+            return
+
         if self.bot.time > self.start_forge_after and self.bot.units(FORGE).amount < self.number_of_forges:
             if self.bot.can_afford(FORGE) and not self.bot.already_pending(FORGE):
                 await self.bot.build(FORGE, near=pylon)
@@ -73,6 +82,14 @@ class BuildingManager:
                     print('%8.2f %3d Building Forge' % (self.bot.time, self.bot.supply_used))
 
     async def step_auto_build_twilight_council(self):
+        if not self.bot.coordinator.can('build'):
+            return
+
+        pylon = self.get_pylon()
+
+        if pylon is None:
+            return
+
         if self.bot.units(FORGE).ready.amount >= 1 and self.bot.units(TWILIGHTCOUNCIL).amount == 0:
             if self.bot.can_afford(TWILIGHTCOUNCIL) and not self.bot.already_pending(TWILIGHTCOUNCIL):
                 await self.bot.build(TWILIGHTCOUNCIL, near=pylon)

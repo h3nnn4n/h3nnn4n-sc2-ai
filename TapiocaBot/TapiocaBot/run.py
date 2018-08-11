@@ -24,7 +24,28 @@ maps = [
     'EastwatchLE',
 ]
 
+races = [
+    Race.Protoss,
+    Race.Terran,
+    Race.Zerg
+]
+
+difficulties = [
+    Difficulty.VeryEasy,
+    Difficulty.Easy,
+    Difficulty.Medium,
+    Difficulty.MediumHard,
+    Difficulty.Hard,
+    Difficulty.Harder,
+    Difficulty.VeryHard,
+    Difficulty.CheatVision,
+    Difficulty.CheatMoney,
+    Difficulty.CheatInsane,
+]
+
 selected_map = maps[2]
+race = races[1]
+difficulty = difficulties[5]
 
 
 if __name__ == '__main__':
@@ -37,5 +58,5 @@ if __name__ == '__main__':
         bot = Bot(Race.Protoss, TapiocaBot(verbose=True, visual_debug=True))
         sc2.run_game(sc2.maps.get(selected_map), [
             bot,
-            Computer(Race.Protoss, Difficulty.VeryHard)
+            Computer(race, difficulty)
         ], realtime=False)

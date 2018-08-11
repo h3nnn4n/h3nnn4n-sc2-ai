@@ -88,6 +88,8 @@ class ArmyManager:
                 elif info['state'] == 'waiting_at_center':
                     if send_attack:
                         await self.send_attack(soldier_tag)
+                elif info['state'] == 'attacking':
+                    await self.micro_unit(soldier_tag)
 
         for tag in tags_to_delete:
             self.soldiers.pop(tag)
@@ -136,6 +138,12 @@ class ArmyManager:
         await self.bot.do(unit.attack(self.attack_target))
 
         self.soldiers[unit_tag]['state'] = 'attacking'
+
+    async def micro_unit(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+        if unit.is_idle:
+            self.attack_target = self.get_something_to_attack()
+            await self.bot.do(unit.attack(self.attack_target.position))
 
     def get_something_to_attack(self):
         if self.bot.known_enemy_units.amount > 0:

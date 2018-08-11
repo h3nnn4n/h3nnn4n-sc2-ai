@@ -1,3 +1,4 @@
+import random
 from sc2.constants import *
 
 
@@ -7,7 +8,7 @@ class ArmyManager:
         self.verbose = verbose
 
         self.auto_recuit = True
-        self.minimum_army_size = 15
+        self.minimum_army_size = 4
         self.units_available_for_attack = {
             ZEALOT: 'ZEALOT',
             ADEPT: 'ADEPT',
@@ -17,10 +18,12 @@ class ArmyManager:
         }
 
         self.distance_timer = 0.675 # Time between distance checks
+        self.timer__ = 0
 
         self.leader = None
         self.soldiers = {}
         self.attacking = False
+        self.attack_target = None
 
     def init(self):
         self.map_center = self.bot.game_info.map_center
@@ -65,6 +68,8 @@ class ArmyManager:
 
         leader_tag, leader_unit = self.get_updated_leader()
 
+        send_attack = self.can_attack()
+
         for soldier_tag in self.soldiers:
             soldier_unit = self.bot.units.find_by_tag(soldier_tag)
 
@@ -78,7 +83,8 @@ class ArmyManager:
                 elif info['state'] == 'moving_to_center':
                     await self.moving_to_center(soldier_tag)
                 elif info['state'] == 'waiting_at_center':
-                    pass
+                    if send_attack:
+                        await self.send_attack(soldier_tag)
 
         for tag in tags_to_delete:
             self.soldiers.pop(tag)
@@ -88,6 +94,14 @@ class ArmyManager:
         unit = self.bot.units.find_by_tag(tag)
 
         return tag, unit
+
+    def can_attack(self):
+        if self.bot.time - self.timer__ >= self.distance_timer:
+            timer__ = self.bot.time
+            if self.bot.units.closer_than(6, self.map_center).amount >= self.minimum_army_size:
+                return True
+
+        return False
 
     async def move_to_center(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)
@@ -106,5 +120,25 @@ class ArmyManager:
 
             if unit.distance_to(self.map_center) < 5:
                 self.soldiers[unit_tag]['state'] = 'waiting_at_center'
+                self.soldiers[unit_tag]['waiting_at_center_timer'] = self.bot.time
             else:
                 await self.bot.do(unit.attack(self.map_center))
+
+    async def send_attack(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        if self.attack_target is None:
+            self.attack_target = self.get_something_to_attack()
+
+        await self.bot.do(unit.attack(self.attack_target))
+
+        self.soldiers[unit_tag]['state'] = 'attacking'
+
+    def get_something_to_attack(self):
+        if self.bot.known_enemy_units.amount > 0:
+            return self.bot.known_enemy_units.random
+
+        if self.bot.known_enemy_structures.amount > 0:
+            return self.bot.known_enemy_structures.random
+
+        return random.sample(list(self.bot.expansion_locations), k=1)[0]

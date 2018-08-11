@@ -16,5 +16,5 @@ if __name__ == '__main__':
         bot = Bot(Race.Protoss, TapiocaBot(verbose=True, visual_debug=True))
         sc2.run_game(sc2.maps.get("Abyssal Reef LE"), [
             bot,
-            Computer(Race.Protoss, Difficulty.Easy)
+            Computer(Race.Protoss, Difficulty.VeryHard)
         ], realtime=False)

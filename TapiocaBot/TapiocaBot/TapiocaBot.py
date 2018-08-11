@@ -288,6 +288,15 @@ class TapiocaBot(sc2.BotAI):
                     if leader_unit is not None:
                         self._client.debug_line_out(leader_unit, soldier_unit, color=(0, 255, 255))
 
+        # Attack Lines
+
+        if self.army_manager.army_size() > 0:
+            for soldier_tag in self.army_manager.soldiers:
+                soldier_unit = self.units.find_by_tag(soldier_tag)
+
+                if soldier_unit is not None and self.army_manager.soldiers[soldier_tag]['state'] == 'attacking' and self.army_manager.attack_target is not None:
+                    self._client.debug_line_out(soldier_unit, self.army_manager.attack_target, color=(255, 0, 0))
+
         # Sens the debug info to the game
         await self._client.send_debug()
 

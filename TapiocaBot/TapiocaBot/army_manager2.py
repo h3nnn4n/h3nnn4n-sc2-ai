@@ -8,7 +8,9 @@ class ArmyManager:
         self.verbose = verbose
 
         self.auto_recuit = True
-        self.minimum_army_size = 4
+        self.minimum_army_size = 20
+        self.attack_trigger_radius = 10
+        self.stop_radius = 5
         self.units_available_for_attack = {
             ZEALOT: 'ZEALOT',
             ADEPT: 'ADEPT',
@@ -24,6 +26,7 @@ class ArmyManager:
         self.soldiers = {}
         self.attacking = False
         self.attack_target = None
+        self.first_attack = True
 
     def init(self):
         self.map_center = self.bot.game_info.map_center
@@ -98,7 +101,7 @@ class ArmyManager:
     def can_attack(self):
         if self.bot.time - self.timer__ >= self.distance_timer:
             timer__ = self.bot.time
-            if self.bot.units.closer_than(6, self.map_center).amount >= self.minimum_army_size:
+            if self.bot.units.closer_than(self.attack_trigger_radius, self.map_center).amount >= self.minimum_army_size:
                 return True
 
         return False
@@ -118,7 +121,7 @@ class ArmyManager:
         if self.bot.time - self.soldiers[unit_tag]['distance_to_center_timer'] >= self.distance_timer:
             self.soldiers[unit_tag]['distance_to_center_timer'] = self.bot.time
 
-            if unit.distance_to(self.map_center) < 5:
+            if unit.distance_to(self.map_center) < self.stop_radius:
                 self.soldiers[unit_tag]['state'] = 'waiting_at_center'
                 self.soldiers[unit_tag]['waiting_at_center_timer'] = self.bot.time
             else:
@@ -140,5 +143,9 @@ class ArmyManager:
 
         if self.bot.known_enemy_structures.amount > 0:
             return self.bot.known_enemy_structures.random
+
+        if self.first_attack:
+            self.first_attack = False
+            return self.bot.enemy_start_locations[0]
 
         return random.sample(list(self.bot.expansion_locations), k=1)[0]

@@ -16,25 +16,19 @@ class ArmyManager:
             IMMORTAL: 'IMMORTAL',
         }
 
+        self.distance_timer = 0.675 # Time between distance checks
+
         self.leader = None
         self.soldiers = {}
         self.attacking = False
-
-        self.actions_for_next_step = []
 
     def init(self):
         self.map_center = self.bot.game_info.map_center
 
     async def step(self):
-        actions = []
-
-        self.update_soldier_status()
-        self.update_leader()
         self.auto_recuiter()
-
-        self.actions_for_next_step.extend(actions)
-        await self.bot.do_actions(self.actions_for_next_step)
-        self.actions_for_next_step = []
+        self.update_soldier()
+        self.update_leader()
 
     def auto_recuiter(self):
         if not self.auto_recuit:
@@ -66,11 +60,10 @@ class ArmyManager:
     def army_size(self):
         return len(self.soldiers)
 
-    def update_soldier_status(self):
+    def update_soldier(self):
         tags_to_delete = []
 
-        leader_tag = self.leader
-        leader_unit = self.bot.units.find_by_tag(leader_tag)
+        leader_tag, leader_unit = self.get_updated_leader()
 
         for soldier_tag in self.soldiers:
             soldier_unit = self.bot.units.find_by_tag(soldier_tag)
@@ -80,9 +73,36 @@ class ArmyManager:
             else:
                 info = self.soldiers[soldier_tag]
 
-                if info['state'] == 'new' and leader_tag != soldier_tag:
-                    self.actions_for_next_step.append(soldier_unit.move(leader_unit.position))
-                    self.soldiers[soldier_tag]['state'] = 'waiting'
+                if info['state'] == 'new':
+                    self.move_to_center(soldier_tag)
+                elif info['state'] == 'moving_to_center':
+                    self.waiting_at_center(soldier_tag)
+                elif info['state'] == 'waiting_at_center':
+                    pass
 
         for tag in tags_to_delete:
             self.soldiers.pop(tag)
+
+    def get_updated_leader(self):
+        tag = self.leader
+        unit = self.bot.units.find_by_tag(tag)
+
+        return tag, unit
+
+    def move_to_center(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        leader_tag, leader_unit = self.get_updated_leader()
+
+        self.bot.do(unit.move(self.map_center))
+        self.soldiers[unit_tag]['state'] = 'moving_to_center'
+        self.soldiers[unit_tag]['distance_to_center_timer'] = self.bot.time
+
+    def waiting_at_center(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        if self.bot.time - self.soldiers[unit_tag]['distance_to_center_timer'] >= self.distance_timer:
+            self.soldiers[unit_tag]['distance_to_center_timer'] = self.bot.time
+
+            if unit.distance_to(self.map_center) < 3:
+                self.soldiers[unit_tag]['state'] = 'waiting_at_center'

@@ -251,6 +251,14 @@ class TapiocaBot(sc2.BotAI):
             self._client.debug_text_screen(message, pos=(0.001, y), size=font_size)
             y += inc
 
+        # 3D text
+
+        for tag in self.army_manager.soldiers:
+            unit = self.units.find_by_tag(tag)
+            if unit is not None:
+                message = self.army_manager.soldiers[tag]['state']
+                self._client.debug_text_world(message, pos=unit.position3d, size=font_size)
+
         # Spheres
 
         leader_tag = self.army_manager.leader

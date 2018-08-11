@@ -22,6 +22,9 @@ class GatewayController:
             await self.step_warpgates()
 
     async def step_gateways(self):
+        if not self.bot.coordinator.can('build_gateway_units'):
+            return
+
         gateways = self.bot.units(GATEWAY).ready.noqueue
 
         for gateway in gateways:
@@ -37,6 +40,9 @@ class GatewayController:
                         self.bot.time, self.bot.supply_used, next_unit))
 
     async def step_warpgates(self):
+        if not self.bot.coordinator.can('build_gateway_units'):
+            return
+
         for warpgate in self.bot.units(WARPGATE).ready:
             abilities = await self.bot.get_available_abilities(warpgate)
             if AbilityId.WARPGATETRAIN_ZEALOT in abilities:

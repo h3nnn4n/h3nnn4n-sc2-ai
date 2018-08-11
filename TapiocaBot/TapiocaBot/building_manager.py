@@ -15,7 +15,6 @@ class BuildingManager:
         self.auto_expand_gas_thresehold = 15
         self.gateways_per_nexus = 2
         self.robotics_facility_per_nexus = 1
-        self.want_to_expand = False
 
     async def step(self):
         await self.step_auto_build_assimilators()
@@ -25,6 +24,9 @@ class BuildingManager:
         await self.step_auto_build_twilight_council()
 
     async def step_auto_build_assimilators(self):
+        if not self.bot.coordinator.can('build'):
+            return
+
         total_workers_on_gas = 0
         for geyser in self.bot.geysers:
             total_workers_on_gas += geyser.assigned_harvesters
@@ -33,6 +35,9 @@ class BuildingManager:
             await self.build_assimilator()
 
     async def step_auto_build_gateways(self):
+        if not self.bot.coordinator.can('build'):
+            return
+
         number_of_gateways = self.bot.units(GATEWAY).amount + self.bot.units(WARPGATE).amount
         pylon = self.get_pylon()
 
@@ -43,6 +48,9 @@ class BuildingManager:
             await self.bot.build(GATEWAY, near=pylon)
 
     async def step_auto_build_robotics_facility(self):
+        if not self.bot.coordinator.can('build'):
+            return
+
         pylon = self.get_pylon()
 
         if pylon is not None and self.bot.can_afford(ROBOTICSFACILITY) and self.bot.units(CYBERNETICSCORE).ready and \
@@ -53,6 +61,9 @@ class BuildingManager:
             await self.bot.build(ROBOTICSFACILITY, near=pylon)
 
     async def step_auto_build_forge(self):
+        if not self.bot.coordinator.can('build'):
+            return
+
         pylon = self.get_pylon()
 
         if self.bot.time > self.start_forge_after and self.bot.units(FORGE).amount < self.number_of_forges:
@@ -69,12 +80,12 @@ class BuildingManager:
                     print('%8.2f %3d Building Twilight Council' % (self.bot.time, self.bot.supply_used))
 
     async def build_nexus(self):
-        if not self.can('expand'):
+        if not self.bot.coordinator.can('expand'):
             return
 
         if not self.bot.already_pending(NEXUS) and self.bot.can_afford(NEXUS):
             await self.bot.expand_now()
-            self.want_to_expand = False
+            self.bot.coordinator.new_priority(None)
             if self.verbose:
                 print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))
 
@@ -152,30 +163,11 @@ class BuildingManager:
             number_of_minerals = sum([self.bot.state.mineral_field.closer_than(10, x).amount for x in self.bot.townhalls])
 
             if number_of_minerals <= self.auto_expand_mineral_threshold:
-                self.want_to_expand = True
+                print('%8.2f %3d WANT TO EXPAND' % (self.bot.time, self.bot.supply_used))
+                self.bot.coordinator.new_priority('expand')
 
     def get_pylon(self):
         pylon = self.bot.units(PYLON).ready
         if pylon.amount > 0:
             return pylon.random
         return None
-
-    def can(self, what):
-        if what == 'build_army':
-            return not self.want_to_expand
-
-        if what == 'build_structures':
-            return not self.want_to_expand
-
-        if what == 'build_assimilator':
-            return not self.want_to_expand
-
-        if what == 'expand':
-            return self.want_to_expand
-
-        self.console()
-
-    def console(self):
-        from IPython.terminal.embed import InteractiveShellEmbed
-        ipshell = InteractiveShellEmbed.instance()
-        ipshell()

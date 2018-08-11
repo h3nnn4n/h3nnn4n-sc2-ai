@@ -17,6 +17,8 @@ from scouting_controller import ScoutingController
 from building_manager import BuildingManager
 from upgrades_controller import UpgradesController
 
+from coordinator import Coordinator
+
 use_old_army_manager = False
 if use_old_army_manager:
     from army_manager import ArmyManager
@@ -66,6 +68,8 @@ class TapiocaBot(sc2.BotAI):
             bot=self
         )
 
+        self.coordinator = Coordinator(bot=self)
+
         self.order_queue = []
 
     def on_start(self):
@@ -82,6 +86,7 @@ class TapiocaBot(sc2.BotAI):
         #self.event_manager.add_event(self.attack, 3)
         self.event_manager.add_event(self.build_order_manager.step, 0.5)
         self.event_manager.add_event(self.army_manager.step, 1.1)
+        self.event_manager.add_event(self.coordinator.step, 2)
 
     async def on_step(self, iteration):
         sys.stdout.flush()
@@ -200,6 +205,9 @@ class TapiocaBot(sc2.BotAI):
                     print('%6.2f reinforcing with %d units' % (self.time, total_units))
 
     async def build_workers(self):
+        if not self.coordinator.can('build'):
+            return
+
         nexus = self.units(NEXUS).ready.noqueue
         n_workers = self.units(PROBE).amount
 
@@ -230,6 +238,7 @@ class TapiocaBot(sc2.BotAI):
         # Text
 
         messages = [
+            '        priority: %s ' % self.coordinator.priority,
             '       n_workers: %3d' % self.units(PROBE).amount,
             '       n_zealots: %3d' % self.units(ZEALOT).amount,
             '      n_stalkers: %3d' % self.units(STALKER).amount,
@@ -241,8 +250,8 @@ class TapiocaBot(sc2.BotAI):
             '   minerals_left: %3d' % number_of_minerals,
         ]
 
-        if self.army_manager.leader is not None:
-            messages.append('     leader: %3d' % self.army_manager.leader)
+        #if self.army_manager.leader is not None:
+            #messages.append('     leader: %3d' % self.army_manager.leader)
 
         y = 0
         inc = 0.025

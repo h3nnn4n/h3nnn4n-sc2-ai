@@ -23,6 +23,9 @@ class RoboticsFacilitiyController:
         }
 
     async def step(self):
+        if not self.bot.coordinator.can('build_robotics_facility_units'):
+            return
+
         robos = self.bot.units(ROBOTICSFACILITY).ready.noqueue
 
         for robo in robos:

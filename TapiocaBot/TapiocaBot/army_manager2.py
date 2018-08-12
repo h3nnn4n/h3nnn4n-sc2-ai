@@ -8,7 +8,7 @@ class ArmyManager:
         self.verbose = verbose
 
         self.auto_recuit = True
-        self.minimum_army_size = 200
+        self.minimum_army_size = 20
         self.attack_trigger_radius = 6
         self.stop_radius = 5
         self.units_available_for_attack = {
@@ -89,7 +89,6 @@ class ArmyManager:
                 info = self.soldiers[soldier_tag]
 
                 if needs_to_defend:
-                    print('defending with %d' % soldier_tag)
                     await self.send_defense(soldier_tag)
                 if info['state'] == 'new':
                     await self.move_to_center(soldier_tag)

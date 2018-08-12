@@ -8,7 +8,7 @@ class ArmyManager:
         self.verbose = verbose
 
         self.auto_recuit = True
-        self.minimum_army_size = 20
+        self.minimum_army_size = 200
         self.attack_trigger_radius = 6
         self.stop_radius = 5
         self.units_available_for_attack = {
@@ -19,14 +19,19 @@ class ArmyManager:
             UnitTypeId.IMMORTAL: 'IMMORTAL',
         }
 
+        self.defend_around = [UnitTypeId.PYLON, UnitTypeId.NEXUS]
+        self.threat_proximity = 20
+
         self.distance_timer = 0.675  # Time between distance checks
         self.send_attack_timer = 0
         self.resend_to_center_timer = 0
 
+        self.threats = None
         self.leader = None
         self.soldiers = {}
         self.attacking = False
         self.attack_target = None
+        self.defense_target = None
         self.first_attack = True
 
     def init(self):
@@ -72,6 +77,7 @@ class ArmyManager:
 
         # leader_tag, leader_unit = self.get_updated_leader()
 
+        needs_to_defend = self.needs_to_defend()
         send_attack = self.can_attack()
 
         for soldier_tag in self.soldiers:
@@ -82,6 +88,9 @@ class ArmyManager:
             else:
                 info = self.soldiers[soldier_tag]
 
+                if needs_to_defend:
+                    print('defending with %d' % soldier_tag)
+                    await self.send_defense(soldier_tag)
                 if info['state'] == 'new':
                     await self.move_to_center(soldier_tag)
                 elif info['state'] == 'moving_to_center':
@@ -92,6 +101,8 @@ class ArmyManager:
                     await self.waiting_at_center(soldier_tag)
                 elif info['state'] == 'attacking':
                     await self.micro_unit(soldier_tag)
+                elif info['state'] == 'defending':
+                    await self.defend(soldier_tag)
 
         for tag in tags_to_delete:
             self.soldiers.pop(tag)
@@ -155,11 +166,33 @@ class ArmyManager:
 
         self.soldiers[unit_tag]['state'] = 'attacking'
 
+    async def send_defense(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+        self.soldiers[unit_tag]['state'] = 'defending'
+
+        if self.defense_target is None:
+            self.defense_target = self.get_new_threat_to_defend_from()
+
+        if self.defense_target is not None:
+            await self.bot.do(unit.attack(self.defense_target.position))
+
     async def micro_unit(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)
+
         if unit.is_idle:
             self.attack_target = self.get_something_to_attack()
             await self.bot.do(unit.attack(self.attack_target.position))
+
+    async def defend(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        if unit.is_idle:
+            self.defense_target = self.get_new_threat_to_defend_from()
+
+            if self.defense_target is None:
+                self.soldiers[unit_tag]['state'] = 'new'
+            else:
+                await self.bot.do(unit.attack(self.defense_target.position))
 
     def get_something_to_attack(self):
         if self.bot.known_enemy_units.amount > 0:
@@ -173,6 +206,16 @@ class ArmyManager:
             return self.bot.enemy_start_locations[0]
 
         return random.sample(list(self.bot.expansion_locations), k=1)[0]
+
+    def get_new_threat_to_defend_from(self):
+        for structure_type in self.defend_around:
+            for structure in self.bot.units(structure_type):
+                threats = self.bot.known_enemy_units.closer_than(self.threat_proximity, structure.position)
+
+                if threats.exists:
+                    return threats.random
+
+        return None
 
     def number_of_attacking_units(self):
         count = 0
@@ -191,3 +234,11 @@ class ArmyManager:
                 count += 1
 
         return count
+
+    def needs_to_defend(self):
+        new_threat = self.get_new_threat_to_defend_from()
+
+        if new_threat is not None:
+            return True
+
+        return False

@@ -44,27 +44,8 @@ class TapiocaBot(sc2.BotAI):
         self.researched_warpgate = False
         self.maximum_workers = 66
 
-        # Attack stuff
-        self.army_manager = ArmyManager(bot=self, verbose=self.verbose)
-        self.attack_target = None
-        self.minimum_army_size = 15
-        self.units_available_for_attack = {
-            UnitTypeId.ZEALOT: 'ZEALOT',
-            UnitTypeId.ADEPT: 'ADEPT',
-            UnitTypeId.SENTRY: 'SENTRY',
-            UnitTypeId.STALKER: 'STALKER',
-            UnitTypeId.IMMORTAL: 'IMMORTAL',
-        }
-
-        # Defense stuff
-        self.threat_proximity = 20
-        self.defending_units = {}
-        self.defend_around = [UnitTypeId.PYLON, UnitTypeId.NEXUS]
-
-        # Threat stuff stuff
-        self.defending_from = {}
-
         # Managers and controllers
+        self.army_manager = ArmyManager(bot=self, verbose=self.verbose)
         self.scouting_controller = ScoutingController(bot=self, verbose=self.verbose)
         self.upgrades_controller = UpgradesController(bot=self, verbose=self.verbose)
         self.robotics_facility_controller = RoboticsFacilitiyController(
@@ -88,15 +69,8 @@ class TapiocaBot(sc2.BotAI):
     def on_start(self):
         self.army_manager.init()
 
-        # TODO Tweak these values
         self.event_manager.add_event(self.distribute_workers, 10)
-        self.event_manager.add_event(self.handle_idle_workders, 0.5)
-        # self.event_manager.add_event(self.manage_upgrades, 5.3)
-        # self.event_manager.add_event(self.build_assimilator, 2.5)
-        # self.event_manager.add_event(self.build_structures, 2.4)
-        # self.event_manager.add_event(self.build_army, 0.9)
-        self.event_manager.add_event(self.defend, 1)
-        # self.event_manager.add_event(self.attack, 3)
+        self.event_manager.add_event(self.handle_idle_workers, 0.5)
         self.event_manager.add_event(self.build_order_manager.step, 0.5)
         self.event_manager.add_event(self.army_manager.step, 1.1)
         self.event_manager.add_event(self.coordinator.step, 2)
@@ -129,7 +103,6 @@ class TapiocaBot(sc2.BotAI):
 
             # Robo stuff
             self.event_manager.add_event(self.robotics_facility_controller.step, 1.0)
-
             self.robotics_facility_controller.add_order(UnitTypeId.OBSERVER)
             self.robotics_facility_controller.add_order(UnitTypeId.IMMORTAL)
             self.robotics_facility_controller.add_order(UnitTypeId.IMMORTAL)
@@ -150,77 +123,6 @@ class TapiocaBot(sc2.BotAI):
         await self._client.actions(self.order_queue, game_data=self._game_data)
         self.order_queue = []
 
-    async def defend(self):
-        # Attacks units that get too close to import units
-        for structure_type in self.defend_around:
-            for structure in self.units(structure_type):
-                threats = self.known_enemy_units.closer_than(self.threat_proximity, structure.position)
-                if threats.exists:
-                    target_threat = None
-                    new_threat_count = 0
-
-                    for threat in threats:
-                        if threat.tag not in self.defending_from:
-                            self.defending_from[threat.tag] = None
-                            target_threat = threat
-                            new_threat_count += 1
-
-                    if new_threat_count > 0:
-                        if self.verbose:
-                            print('%6.2f found %d threats' % (self.time, new_threat_count))
-                        await self.target_enemy_unit(target_threat)
-                        break
-
-    async def target_enemy_unit(self, target):
-        # sends all idle units to attack an enemy unit
-
-        zealots = self.units(UnitTypeId.ZEALOT).idle
-        stalkers = self.units(UnitTypeId.STALKER).idle
-        total_units = zealots.amount + stalkers.amount
-
-        # Only sends 1 unit to attack a worker
-        is_worker = target.type_id in [UnitTypeId.PROBE, UnitTypeId.SCV, UnitTypeId.DRONE]
-
-        if self.verbose:
-            print('%6.2f defending with %d units' % (self.time, total_units))
-
-        for unit_group in [zealots, stalkers]:
-            for unit in unit_group:
-                if is_worker:
-                    await self.do(unit.attack(target))
-                    if self.verbose:
-                        print('     - target is a probe, sending a single unit')
-                    return
-                else:
-                    await self.do(unit.attack(target.position))
-
-    async def attack(self):
-        total_units = 0
-        for unit_type in self.units_available_for_attack.keys():
-            total_units += self.units(unit_type).idle.amount
-
-        if total_units >= self.minimum_army_size:
-            if self.army_manager.army_size() == 0:
-                for unit_type in self.units_available_for_attack.keys():
-                    for unit in self.units(unit_type).idle:
-                        self.army_manager.add(unit.tag)
-
-                await self.army_manager.group_at_map_center(
-                    wait_for_n_units=total_units - 1,
-                    timeout=30,
-                    move_towards_position=self.enemy_start_locations[0]
-                )
-
-                if self.verbose:
-                    print('%6.2f Attacking with %d units' % (self.time, total_units))
-            else:
-                for unit_type in self.units_available_for_attack.keys():
-                    for unit in self.units(unit_type).idle:
-                        self.army_manager.add(unit.tag, options={'reinforcement': True})
-
-                if self.verbose:
-                    print('%6.2f reinforcing with %d units' % (self.time, total_units))
-
     async def build_workers(self):
         if not self.coordinator.can('build'):
             return
@@ -232,7 +134,7 @@ class TapiocaBot(sc2.BotAI):
             if self.can_afford(UnitTypeId.PROBE) and self.supply_left >= 1:
                 await self.do(nexus.random.train(UnitTypeId.PROBE))
 
-    async def handle_idle_workders(self):
+    async def handle_idle_workers(self):
         idle_workers = self.units(UnitTypeId.PROBE).idle
 
         if idle_workers.exists:
@@ -247,7 +149,7 @@ class TapiocaBot(sc2.BotAI):
         font_size = 18
 
         total_units = 0
-        for unit_type in self.units_available_for_attack.keys():
+        for unit_type in self.army_manager.units_available_for_attack.keys():
             total_units += self.units(unit_type).idle.amount
 
         number_of_minerals = sum([self.state.mineral_field.closer_than(10, x).amount for x in self.townhalls])
@@ -328,12 +230,6 @@ class TapiocaBot(sc2.BotAI):
 
         # Sens the debug info to the game
         await self._client.send_debug()
-
-    def select_target(self, state):
-        if self.known_enemy_structures.exists:
-            return random.choice(self.known_enemy_structures)
-
-        return self.enemy_start_locations[0]
 
     def get_unit_info(self, unit, field="food_required"):
         assert isinstance(unit, (Unit, UnitTypeId))

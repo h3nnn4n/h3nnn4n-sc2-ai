@@ -3,11 +3,17 @@ import random
 import sys
 import sc2
 from sc2 import Race, Difficulty
-from sc2.constants import *
+
 from sc2.player import Bot, Computer
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.position import Point2, Point3
+
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.ability_id import AbilityId
+from sc2.ids.buff_id import BuffId
+from sc2.ids.upgrade_id import UpgradeId
+from sc2.ids.effect_id import EffectId
 
 from event_manager import EventManager
 from build_order_manager import BuildOrderManager
@@ -40,17 +46,17 @@ class TapiocaBot(sc2.BotAI):
         self.attack_target = None
         self.minimum_army_size = 15
         self.units_available_for_attack = {
-            ZEALOT: 'ZEALOT',
-            ADEPT: 'ADEPT',
-            SENTRY: 'SENTRY',
-            STALKER: 'STALKER',
-            IMMORTAL: 'IMMORTAL',
+            UnitTypeId.ZEALOT: 'ZEALOT',
+            UnitTypeId.ADEPT: 'ADEPT',
+            UnitTypeId.SENTRY: 'SENTRY',
+            UnitTypeId.STALKER: 'STALKER',
+            UnitTypeId.IMMORTAL: 'IMMORTAL',
         }
 
         # Defense stuff
         self.threat_proximity = 20
         self.defending_units = {}
-        self.defend_around = [PYLON, NEXUS]
+        self.defend_around = [UnitTypeId.PYLON, UnitTypeId.NEXUS]
 
         # Threat stuff stuff
         self.defending_from = {}
@@ -58,7 +64,11 @@ class TapiocaBot(sc2.BotAI):
         # Managers and controllers
         self.scouting_controller = ScoutingController(bot=self, verbose=self.verbose)
         self.upgrades_controller = UpgradesController(bot=self, verbose=self.verbose)
-        self.robotics_facility_controller = RoboticsFacilitiyController(bot=self, verbose=self.verbose, on_idle_build=IMMORTAL)
+        self.robotics_facility_controller = RoboticsFacilitiyController(
+            bot=self,
+            verbose=self.verbose,
+            on_idle_build=UnitTypeId.IMMORTAL
+        )
         self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=True)
         self.building_manager = BuildingManager(bot=self, verbose=self.verbose)
         self.event_manager = EventManager()
@@ -78,12 +88,12 @@ class TapiocaBot(sc2.BotAI):
         # TODO Tweak these values
         self.event_manager.add_event(self.distribute_workers, 10)
         self.event_manager.add_event(self.handle_idle_workders, 0.5)
-        #self.event_manager.add_event(self.manage_upgrades, 5.3)
-        #self.event_manager.add_event(self.build_assimilator, 2.5)
-        #self.event_manager.add_event(self.build_structures, 2.4)
-        #self.event_manager.add_event(self.build_army, 0.9)
+        # self.event_manager.add_event(self.manage_upgrades, 5.3)
+        # self.event_manager.add_event(self.build_assimilator, 2.5)
+        # self.event_manager.add_event(self.build_structures, 2.4)
+        # self.event_manager.add_event(self.build_army, 0.9)
         self.event_manager.add_event(self.defend, 1)
-        #self.event_manager.add_event(self.attack, 3)
+        # self.event_manager.add_event(self.attack, 3)
         self.event_manager.add_event(self.build_order_manager.step, 0.5)
         self.event_manager.add_event(self.army_manager.step, 1.1)
         self.event_manager.add_event(self.coordinator.step, 2)
@@ -111,16 +121,16 @@ class TapiocaBot(sc2.BotAI):
 
             # Gateway stuff
             self.event_manager.add_event(self.gateway_controller.step, 1.0)
-            self.gateway_controller.add_order((STALKER, 2))
-            self.gateway_controller.add_order((ZEALOT, 1))
+            self.gateway_controller.add_order((UnitTypeId.STALKER, 2))
+            self.gateway_controller.add_order((UnitTypeId.ZEALOT, 1))
 
             # Robo stuff
             self.event_manager.add_event(self.robotics_facility_controller.step, 1.0)
 
-            self.robotics_facility_controller.add_order(OBSERVER)
-            self.robotics_facility_controller.add_order(IMMORTAL)
-            self.robotics_facility_controller.add_order(IMMORTAL)
-            self.robotics_facility_controller.add_order(IMMORTAL)
+            self.robotics_facility_controller.add_order(UnitTypeId.OBSERVER)
+            self.robotics_facility_controller.add_order(UnitTypeId.IMMORTAL)
+            self.robotics_facility_controller.add_order(UnitTypeId.IMMORTAL)
+            self.robotics_facility_controller.add_order(UnitTypeId.IMMORTAL)
 
         events = self.event_manager.get_current_events(self.time)
         for event in events:
@@ -161,12 +171,12 @@ class TapiocaBot(sc2.BotAI):
     async def target_enemy_unit(self, target):
         # sends all idle units to attack an enemy unit
 
-        zealots = self.units(ZEALOT).idle
-        stalkers = self.units(STALKER).idle
+        zealots = self.units(UnitTypeId.ZEALOT).idle
+        stalkers = self.units(UnitTypeId.STALKER).idle
         total_units = zealots.amount + stalkers.amount
 
         # Only sends 1 unit to attack a worker
-        is_worker = target.type_id in [PROBE, SCV, DRONE]
+        is_worker = target.type_id in [UnitTypeId.PROBE, UnitTypeId.SCV, UnitTypeId.DRONE]
 
         if self.verbose:
             print('%6.2f defending with %d units' % (self.time, total_units))
@@ -208,15 +218,15 @@ class TapiocaBot(sc2.BotAI):
         if not self.coordinator.can('build'):
             return
 
-        nexus = self.units(NEXUS).ready.noqueue
-        n_workers = self.units(PROBE).amount
+        nexus = self.units(UnitTypeId.NEXUS).ready.noqueue
+        n_workers = self.units(UnitTypeId.PROBE).amount
 
-        if nexus and n_workers < self.units(NEXUS).amount * 22 and n_workers < self.maximum_workers:
-            if self.can_afford(PROBE) and self.supply_left >= 1:
-                await self.do(nexus.random.train(PROBE))
+        if nexus and n_workers < self.units(UnitTypeId.NEXUS).amount * 22 and n_workers < self.maximum_workers:
+            if self.can_afford(UnitTypeId.PROBE) and self.supply_left >= 1:
+                await self.do(nexus.random.train(UnitTypeId.PROBE))
 
     async def handle_idle_workders(self):
-        idle_workers = self.units(PROBE).idle
+        idle_workers = self.units(UnitTypeId.PROBE).idle
 
         if idle_workers.exists:
             await self.distribute_workers()
@@ -239,19 +249,16 @@ class TapiocaBot(sc2.BotAI):
 
         messages = [
             '        priority: %s ' % self.coordinator.priority,
-            '       n_workers: %3d' % self.units(PROBE).amount,
-            '       n_zealots: %3d' % self.units(ZEALOT).amount,
-            '      n_stalkers: %3d' % self.units(STALKER).amount,
-            '     n_immortals: %3d' % self.units(IMMORTAL).amount,
+            '       n_workers: %3d' % self.units(UnitTypeId.PROBE).amount,
+            '       n_zealots: %3d' % self.units(UnitTypeId.ZEALOT).amount,
+            '      n_stalkers: %3d' % self.units(UnitTypeId.STALKER).amount,
+            '     n_immortals: %3d' % self.units(UnitTypeId.IMMORTAL).amount,
             '       idle_army: %3d' % total_units,
             '       army_size: %3d' % self.army_manager.army_size(),
             '     ememy_units: %3d' % self.known_enemy_units.amount,
             'ememy_structures: %3d' % self.known_enemy_structures.amount,
             '   minerals_left: %3d' % number_of_minerals,
         ]
-
-        #if self.army_manager.leader is not None:
-            #messages.append('     leader: %3d' % self.army_manager.leader)
 
         y = 0
         inc = 0.025
@@ -314,11 +321,6 @@ class TapiocaBot(sc2.BotAI):
             return random.choice(self.known_enemy_structures)
 
         return self.enemy_start_locations[0]
-
-    def console(self):
-        from IPython.terminal.embed import InteractiveShellEmbed
-        ipshell = InteractiveShellEmbed.instance()
-        ipshell()
 
     def get_unit_info(self, unit, field="food_required"):
         assert isinstance(unit, (Unit, UnitTypeId))

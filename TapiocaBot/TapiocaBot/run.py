@@ -1,6 +1,8 @@
+# pylint: disable=C0301
+
 import sys
 import sc2
-from __init__ import run_ladder_game
+from ladder import run_ladder_game
 from sc2 import Race, Difficulty
 from sc2.player import Bot, Computer
 from TapiocaBot import TapiocaBot
@@ -13,15 +15,7 @@ maps = [
     '(4)DarknessSanctuaryLE',
     '(2)AcidPlantLE',
     '(2)DreamcatcherLE',
-    '(2)RedshiftLE',
-    'AbyssalReefLE',
-    'AbiogenesisLE',
-    'BackwaterLE',
-    'CatalystLE',
-    'NeonVioletSquareLE',
-    'AcidPlantLE',
-    'BlackpinkLE',
-    'EastwatchLE',
+    '(2)RedshiftLE'
 ]
 
 races = [
@@ -40,11 +34,11 @@ difficulties = [
     Difficulty.VeryHard,
     Difficulty.CheatVision,
     Difficulty.CheatMoney,
-    Difficulty.CheatInsane,
+    Difficulty.CheatInsane
 ]
 
 selected_map = maps[2]
-race = races[1]
+race = races[2]
 difficulty = difficulties[5]
 
 

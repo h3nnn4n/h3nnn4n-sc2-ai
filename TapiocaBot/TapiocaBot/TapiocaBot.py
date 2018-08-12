@@ -92,7 +92,7 @@ class TapiocaBot(sc2.BotAI):
             self.event_manager.add_event(self.building_manager.expansion_controller, 5)
             self.event_manager.add_event(self.building_manager.build_nexus, 5)
             self.event_manager.add_event(self.build_workers, 2.25)
-            self.event_manager.add_event(self.scouting_controller.step, 10)
+            # self.event_manager.add_event(self.scouting_controller.step, 10)
             self.event_manager.add_event(self.building_manager.step, 2)
             self.event_manager.add_event(self.upgrades_controller.step, 5)
 

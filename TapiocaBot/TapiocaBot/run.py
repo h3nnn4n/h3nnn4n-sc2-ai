@@ -6,6 +6,7 @@ from sc2 import Race, Difficulty
 from sc2.player import Bot, Computer
 from TapiocaBot import TapiocaBot
 from ladder import run_ladder_game
+from random import sample
 
 
 maps = [
@@ -37,8 +38,8 @@ difficulties = [
     Difficulty.CheatInsane
 ]
 
-selected_map = maps[2]
-race = races[2]
+selected_map = sample(maps, k=1)[0]
+race = sample(races, k=1)[0]
 difficulty = difficulties[5]
 
 

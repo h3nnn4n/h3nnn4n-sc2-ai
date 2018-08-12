@@ -1,3 +1,6 @@
+# pylint: disable=E0401
+# Annoying false positive
+
 from two_gate_fast_expand import TwoGateFastExpand
 
 

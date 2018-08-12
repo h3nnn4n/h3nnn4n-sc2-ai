@@ -9,7 +9,7 @@ class ArmyManager:
 
         self.auto_recuit = True
         self.minimum_army_size = 20
-        self.attack_trigger_radius = 10
+        self.attack_trigger_radius = 6
         self.stop_radius = 5
         self.units_available_for_attack = {
             UnitTypeId.ZEALOT: 'ZEALOT',
@@ -20,7 +20,8 @@ class ArmyManager:
         }
 
         self.distance_timer = 0.675  # Time between distance checks
-        self.timer__ = 0
+        self.send_attack_timer = 0
+        self.resend_to_center_timer = 0
 
         self.leader = None
         self.soldiers = {}
@@ -88,6 +89,7 @@ class ArmyManager:
                 elif info['state'] == 'waiting_at_center':
                     if send_attack:
                         await self.send_attack(soldier_tag)
+                    await self.waiting_at_center(soldier_tag)
                 elif info['state'] == 'attacking':
                     await self.micro_unit(soldier_tag)
 
@@ -101,8 +103,8 @@ class ArmyManager:
         return tag, unit
 
     def can_attack(self):
-        if self.bot.time - self.timer__ >= self.distance_timer:
-            self.timer__ = self.bot.time
+        if self.bot.time - self.send_attack_timer >= self.distance_timer:
+            self.send_attack_timer = self.bot.time
             close_units = self.bot.units.closer_than(self.attack_trigger_radius, self.map_center)
             if close_units.amount >= self.minimum_army_size:
                 return True
@@ -127,8 +129,21 @@ class ArmyManager:
             if unit.distance_to(self.map_center) < self.stop_radius:
                 self.soldiers[unit_tag]['state'] = 'waiting_at_center'
                 self.soldiers[unit_tag]['waiting_at_center_timer'] = self.bot.time
+                self.soldiers[unit_tag]['resend_to_center_timer'] = self.bot.time
             else:
                 await self.bot.do(unit.attack(self.map_center))
+
+    async def waiting_at_center(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        if self.bot.time - self.soldiers[unit_tag]['resend_to_center_timer'] >= self.distance_timer:
+            self.soldiers[unit_tag]['resend_to_center_timer'] = self.bot.time
+            if unit.distance_to(self.map_center) > self.attack_trigger_radius:
+                if self.attack_target is not None and self.number_of_attacking_units() > 10:
+                    self.soldiers[unit_tag]['state'] = 'attacking'
+                    await self.bot.do(unit.attack(self.attack_target))
+                else:
+                    await self.bot.do(unit.attack(self.map_center))
 
     async def send_attack(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)
@@ -158,3 +173,21 @@ class ArmyManager:
             return self.bot.enemy_start_locations[0]
 
         return random.sample(list(self.bot.expansion_locations), k=1)[0]
+
+    def number_of_attacking_units(self):
+        count = 0
+
+        for _, v in self.soldiers.items():
+            if 'state' in v.keys() and v['state'] == 'attacking':
+                count += 1
+
+        return count
+
+    def number_of_waiting_units(self):
+        count = 0
+
+        for _, v in self.soldiers.items():
+            if 'state' in v.keys() and v['state'] == 'waiting':
+                count += 1
+
+        return count

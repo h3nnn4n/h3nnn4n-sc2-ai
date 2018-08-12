@@ -1,5 +1,7 @@
-from sc2.constants import *
 import random
+
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.ability_id import AbilityId
 
 
 class UpgradesController:
@@ -11,46 +13,46 @@ class UpgradesController:
 
         self.upgrades = {
             'ground_weapons': [
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1,
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2,
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3],
+                AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1,
+                AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2,
+                AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3],
             'ground_armor': [
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1,
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2,
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3],
-            'shield' : [
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL1,
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL2,
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL3]
-            }
+                AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1,
+                AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2,
+                AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3],
+            'shield': [
+                AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL1,
+                AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL2,
+                AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL3]
+        }
 
         self.upgrade_names = {
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1: 'GROUND WEAPONS 1',
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2: 'GROUND WEAPONS 2',
-                FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3: 'GROUND WEAPONS 2',
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1: 'GROUND ARMOR 2',
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2: 'GROUND ARMOR 2',
-                FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3: 'GROUND ARMOR 2',
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL1: 'SHIELDS 1',
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL2: 'SHIELDS 2',
-                FORGERESEARCH_PROTOSSSHIELDSLEVEL3: 'SHIELDS 3'
-            }
+            AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1: 'GROUND WEAPONS 1',
+            AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2: 'GROUND WEAPONS 2',
+            AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3: 'GROUND WEAPONS 2',
+            AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1: 'GROUND ARMOR 2',
+            AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2: 'GROUND ARMOR 2',
+            AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3: 'GROUND ARMOR 2',
+            AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL1: 'SHIELDS 1',
+            AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL2: 'SHIELDS 2',
+            AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL3: 'SHIELDS 3'
+        }
 
     async def step(self):
         await self.manage_cyberbetics_upgrades()
         await self.manage_forge_upgrades()
 
     async def manage_cyberbetics_upgrades(self):
-        if self.bot.units(CYBERNETICSCORE).ready.exists and self.bot.can_afford(RESEARCH_WARPGATE) and not self.bot.researched_warpgate:
-            ccore = self.bot.units(CYBERNETICSCORE).ready.first
-            await self.bot.do(ccore(RESEARCH_WARPGATE))
+        if self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.exists and self.bot.can_afford(AbilityId.RESEARCH_WARPGATE) and not self.bot.researched_warpgate:
+            ccore = self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.first
+            await self.bot.do(ccore(AbilityId.RESEARCH_WARPGATE))
             self.bot.researched_warpgate = True
 
             if self.verbose:
                 print('%8.2f %3d Researching warpgate' % (self.bot.time, self.bot.supply_used))
 
     async def manage_forge_upgrades(self):
-        for forge in self.bot.units(FORGE).ready.noqueue:
+        for forge in self.bot.units(UnitTypeId.FORGE).ready.noqueue:
             abilities = await self.bot.get_available_abilities(forge)
 
             for upgrade_type in self.forge_research_priority:

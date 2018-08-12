@@ -9,6 +9,9 @@ from sc2.unit import Unit
 from sc2.units import Units
 from sc2.position import Point2, Point3
 
+# TODO:
+# This should not be used here since the main class
+# should have no logic
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId

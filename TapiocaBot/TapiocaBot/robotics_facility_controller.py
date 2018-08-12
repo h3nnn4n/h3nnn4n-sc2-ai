@@ -1,5 +1,4 @@
-from sc2.constants import ROBOTICSFACILITY, OBSERVER, IMMORTAL, COLOSSUS, \
-                          WARPPRISM, DISRUPTOR
+from sc2.ids.unit_typeid import UnitTypeId
 from collections import deque
 
 
@@ -15,18 +14,18 @@ class RoboticsFacilitiyController:
         self.pending = deque()
 
         self.supply_needed = {
-            OBSERVER: 1,
-            IMMORTAL: 4,
-            COLOSSUS: 6,
-            WARPPRISM: 2,
-            DISRUPTOR: 3
+            UnitTypeId.OBSERVER: 1,
+            UnitTypeId.IMMORTAL: 4,
+            UnitTypeId.COLOSSUS: 6,
+            UnitTypeId.WARPPRISM: 2,
+            UnitTypeId.DISRUPTOR: 3
         }
 
     async def step(self):
         if not self.bot.coordinator.can('build_robotics_facility_units'):
             return
 
-        robos = self.bot.units(ROBOTICSFACILITY).ready.noqueue
+        robos = self.bot.units(UnitTypeId.ROBOTICSFACILITY).ready.noqueue
 
         for robo in robos:
             next_unit = self.get_next_unit()

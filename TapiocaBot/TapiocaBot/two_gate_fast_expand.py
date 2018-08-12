@@ -2,8 +2,6 @@ from sc2 import Race, Difficulty
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
-from sc2.ids.upgrade_id import UpgradeId
-from sc2.ids.effect_id import EffectId
 from sc2.player import Bot, Computer
 from sc2.unit import Unit
 from sc2.units import Units
@@ -44,7 +42,7 @@ class TwoGateFastExpand:
         # Chrono
         nexus_abilities = await self.bot.get_available_abilities(nexus)
         if AbilityId.EFFECT_CHRONOBOOSTENERGYCOST in nexus_abilities:
-            if not nexus.has_buff(AbilityId.CHRONOBOOSTENERGYCOST):
+            if not nexus.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
                 if self.chronos_on_nexus < 2:
                     self.chronos_on_nexus += 1
                     await self.bot.do(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, nexus))
@@ -122,9 +120,9 @@ class TwoGateFastExpand:
                     print('%8.2f %3d Building Pylon' % (self.bot.time, self.bot.supply_used))
 
         # @100% Cybernetics core -> Research Warpgate
-        if self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.exists and self.bot.can_afford(UnitTypeId.RESEARCH_WARPGATE) and not self.warpgate_started:
+        if self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.exists and self.bot.can_afford(AbilityId.RESEARCH_WARPGATE) and not self.warpgate_started:
             ccore = self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.first
-            await self.bot.do(ccore(UnitTypeId.RESEARCH_WARPGATE))
+            await self.bot.do(ccore(AbilityId.RESEARCH_WARPGATE))
             self.warpgate_started = True
             if self.verbose:
                 print('%8.2f %3d Researching Warpgate' % (self.bot.time, self.bot.supply_used))

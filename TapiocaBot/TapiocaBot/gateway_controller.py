@@ -1,5 +1,6 @@
-from sc2.constants import *
 import random
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.ability_id import AbilityId
 
 
 class GatewayController:
@@ -25,7 +26,7 @@ class GatewayController:
         if not self.bot.coordinator.can('build_gateway_units'):
             return
 
-        gateways = self.bot.units(GATEWAY).ready.noqueue
+        gateways = self.bot.units(UnitTypeId.GATEWAY).ready.noqueue
 
         for gateway in gateways:
             next_unit = self.get_next_unit()
@@ -43,7 +44,7 @@ class GatewayController:
         if not self.bot.coordinator.can('build_gateway_units'):
             return
 
-        for warpgate in self.bot.units(WARPGATE).ready:
+        for warpgate in self.bot.units(UnitTypeId.WARPGATE).ready:
             abilities = await self.bot.get_available_abilities(warpgate)
             if AbilityId.WARPGATETRAIN_ZEALOT in abilities:
                 next_unit = self.get_next_unit()
@@ -59,13 +60,13 @@ class GatewayController:
                     else:
                         # otherwise just brute force it
                         for _ in range(10):  # FIXME I dont think this should ever need to run
-                            pylon = self.bot.units(PYLON).ready.random
+                            pylon = self.bot.units(UnitTypeId.PYLON).ready.random
                             pos = pylon.position.to2
                             placement = await self.bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
 
                             if placement is None:
                                 if self.verbose:
-                                    print("%6.2f can't place" % (self.time))
+                                    print("%6.2f can't place" % (self.bot.time))
                                 return False
 
                             await self.bot.do(warpgate.warp_in(next_unit, placement))
@@ -102,7 +103,7 @@ class GatewayController:
 
     async def morph_gateways_into_warpgates(self):
         if self.auto_morph_to_warpgate:
-            for gateway in self.bot.units(GATEWAY).ready:
+            for gateway in self.bot.units(UnitTypeId.GATEWAY).ready:
                 abilities = await self.bot.get_available_abilities(gateway)
                 if AbilityId.MORPH_WARPGATE in abilities and self.bot.can_afford(AbilityId.MORPH_WARPGATE):
-                    await self.bot.do(gateway(MORPH_WARPGATE))
+                    await self.bot.do(gateway(AbilityId.MORPH_WARPGATE))

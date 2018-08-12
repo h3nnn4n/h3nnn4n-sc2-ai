@@ -1,5 +1,5 @@
-from sc2.constants import *
 import random
+from sc2.ids.unit_typeid import UnitTypeId
 
 
 class ScoutingController:
@@ -34,7 +34,7 @@ class ScoutingController:
                     missing_scouting_units += 1
 
             if missing_scouting_units > 0:
-                idle_stalkers = self.bot.units(STALKER).idle
+                idle_stalkers = self.bot.units(UnitTypeId.STALKER).idle
 
                 if idle_stalkers.exists:
                     if self.verbose:
@@ -42,9 +42,9 @@ class ScoutingController:
 
                     # If there is no unit assigned to scouting
                     # the the idle unit furthest from the base
-                    for i in range(missing_scouting_units):
-                        if self.bot.units(NEXUS).amount > 0:
-                            stalker = idle_stalkers.furthest_to(self.bot.units(NEXUS).first)
+                    for _ in range(missing_scouting_units):
+                        if self.bot.units(UnitTypeId.NEXUS).amount > 0:
+                            stalker = idle_stalkers.furthest_to(self.bot.units(UnitTypeId.NEXUS).first)
                         else:
                             stalker = idle_stalkers.random
 
@@ -53,9 +53,8 @@ class ScoutingController:
                             await self.bot.do(stalker.attack(target))
                             self.scouting_units
 
-                        idle_stalkers = self.bot.units(STALKER).idle
+                        idle_stalkers = self.bot.units(UnitTypeId.STALKER).idle
                         if not idle_stalkers.exists:
                             break
                 else:
                     pass
-                    #print('     - no units to scout')

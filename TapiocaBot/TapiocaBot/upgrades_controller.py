@@ -43,7 +43,9 @@ class UpgradesController:
         await self.manage_forge_upgrades()
 
     async def manage_cyberbetics_upgrades(self):
-        if self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.exists and self.bot.can_afford(AbilityId.RESEARCH_WARPGATE) and not self.bot.researched_warpgate:
+        if self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.exists and \
+           self.bot.can_afford(AbilityId.RESEARCH_WARPGATE) and \
+           not self.bot.researched_warpgate:
             ccore = self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.first
             await self.bot.do(ccore(AbilityId.RESEARCH_WARPGATE))
             self.bot.researched_warpgate = True
@@ -59,7 +61,11 @@ class UpgradesController:
                 for upgrade in self.upgrades[upgrade_type]:
                     if upgrade in abilities and self.bot.can_afford(upgrade):
                         if self.verbose:
-                            print('%8.2f %3d Researching %s' % (self.bot.time, self.bot.supply_used, self.upgrade_names[upgrade]))
+                            print('%8.2f %3d Researching %s' % (
+                                self.bot.time,
+                                self.bot.supply_used,
+                                self.upgrade_names[upgrade])
+                            )
 
                         await self.bot.do(forge(upgrade))
                         break

@@ -1,5 +1,5 @@
 import random
-from sc2.constants import *
+from sc2.ids.unit_typeid import UnitTypeId
 
 
 class ArmyManager:
@@ -12,14 +12,14 @@ class ArmyManager:
         self.attack_trigger_radius = 10
         self.stop_radius = 5
         self.units_available_for_attack = {
-            ZEALOT: 'ZEALOT',
-            ADEPT: 'ADEPT',
-            SENTRY: 'SENTRY',
-            STALKER: 'STALKER',
-            IMMORTAL: 'IMMORTAL',
+            UnitTypeId.ZEALOT: 'ZEALOT',
+            UnitTypeId.ADEPT: 'ADEPT',
+            UnitTypeId.SENTRY: 'SENTRY',
+            UnitTypeId.STALKER: 'STALKER',
+            UnitTypeId.IMMORTAL: 'IMMORTAL',
         }
 
-        self.distance_timer = 0.675 # Time between distance checks
+        self.distance_timer = 0.675  # Time between distance checks
         self.timer__ = 0
 
         self.leader = None
@@ -69,7 +69,7 @@ class ArmyManager:
     async def update_soldier(self):
         tags_to_delete = []
 
-        leader_tag, leader_unit = self.get_updated_leader()
+        # leader_tag, leader_unit = self.get_updated_leader()
 
         send_attack = self.can_attack()
 
@@ -102,8 +102,9 @@ class ArmyManager:
 
     def can_attack(self):
         if self.bot.time - self.timer__ >= self.distance_timer:
-            timer__ = self.bot.time
-            if self.bot.units.closer_than(self.attack_trigger_radius, self.map_center).amount >= self.minimum_army_size:
+            self.timer__ = self.bot.time
+            close_units = self.bot.units.closer_than(self.attack_trigger_radius, self.map_center)
+            if close_units.amount >= self.minimum_army_size:
                 return True
 
         return False
@@ -111,7 +112,7 @@ class ArmyManager:
     async def move_to_center(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)
 
-        leader_tag, leader_unit = self.get_updated_leader()
+        # leader_tag, leader_unit = self.get_updated_leader()
 
         await self.bot.do(unit.attack(self.map_center))
         self.soldiers[unit_tag]['state'] = 'moving_to_center'

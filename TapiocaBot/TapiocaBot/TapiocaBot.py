@@ -205,7 +205,11 @@ class TapiocaBot(sc2.BotAI):
                     for unit in self.units(unit_type).idle:
                         self.army_manager.add(unit.tag)
 
-                await self.army_manager.group_at_map_center(wait_for_n_units=total_units - 1, timeout=30, move_towards_position=self.enemy_start_locations[0])
+                await self.army_manager.group_at_map_center(
+                    wait_for_n_units=total_units - 1,
+                    timeout=30,
+                    move_towards_position=self.enemy_start_locations[0]
+                )
 
                 if self.verbose:
                     print('%6.2f Attacking with %d units' % (self.time, total_units))
@@ -313,8 +317,14 @@ class TapiocaBot(sc2.BotAI):
             for soldier_tag in self.army_manager.soldiers:
                 soldier_unit = self.units.find_by_tag(soldier_tag)
 
-                if soldier_unit is not None and self.army_manager.soldiers[soldier_tag]['state'] == 'attacking' and self.army_manager.attack_target is not None:
-                    self._client.debug_line_out(soldier_unit, self.army_manager.attack_target, color=(255, 0, 0))
+                if soldier_unit is not None and \
+                   self.army_manager.soldiers[soldier_tag]['state'] == 'attacking' and \
+                   self.army_manager.attack_target is not None:
+                    self._client.debug_line_out(
+                        soldier_unit,
+                        self.army_manager.attack_target,
+                        color=(255, 0, 0)
+                    )
 
         # Sens the debug info to the game
         await self._client.send_debug()

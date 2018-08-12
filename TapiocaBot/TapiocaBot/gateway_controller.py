@@ -52,7 +52,11 @@ class GatewayController:
                     # Smartly find a good pylon boy to warp in units next to it
                     pylon = self.bot.building_manager.pylon_with_less_units()
                     pos = pylon.position.to2.random_on_distance(4)
-                    placement = await self.bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+                    placement = await self.bot.find_placement(
+                        AbilityId.WARPGATETRAIN_STALKER,
+                        pos,
+                        placement_step=1
+                    )
 
                     if placement:
                         await self.bot.do(warpgate.warp_in(next_unit, placement))
@@ -62,7 +66,11 @@ class GatewayController:
                         for _ in range(10):  # FIXME I dont think this should ever need to run
                             pylon = self.bot.units(UnitTypeId.PYLON).ready.random
                             pos = pylon.position.to2
-                            placement = await self.bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+                            placement = await self.bot.find_placement(
+                                AbilityId.WARPGATETRAIN_STALKER,
+                                pos,
+                                placement_step=1
+                            )
 
                             if placement is None:
                                 if self.verbose:
@@ -105,5 +113,6 @@ class GatewayController:
         if self.auto_morph_to_warpgate:
             for gateway in self.bot.units(UnitTypeId.GATEWAY).ready:
                 abilities = await self.bot.get_available_abilities(gateway)
-                if AbilityId.MORPH_WARPGATE in abilities and self.bot.can_afford(AbilityId.MORPH_WARPGATE):
+                if AbilityId.MORPH_WARPGATE in abilities and \
+                   self.bot.can_afford(AbilityId.MORPH_WARPGATE):
                     await self.bot.do(gateway(AbilityId.MORPH_WARPGATE))

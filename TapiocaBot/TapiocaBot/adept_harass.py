@@ -1,4 +1,4 @@
-from sc2.constants import *
+from sc2.ids.unit_typeid import UnitTypeId
 
 
 class AdeptHarass:
@@ -6,9 +6,10 @@ class AdeptHarass:
         self.bot = bot
         self.verbose = verbose
 
+        self.auto_recuit = False
         self.expected_of_each = 2
         self.units_available_for_attack = {
-            ADEPT: 'ADEPT',
+            UnitTypeId.ADEPT: 'ADEPT',
         }
 
         self.leader = None

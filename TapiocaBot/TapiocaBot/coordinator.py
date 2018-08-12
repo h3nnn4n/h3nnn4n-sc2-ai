@@ -27,7 +27,3 @@ class Coordinator:
 
     async def step(self):
         return
-
-        if self.priority == 'expand':
-            if self.bot.time - self.expand_timer > self.expand_timeout:
-                self.priority = None

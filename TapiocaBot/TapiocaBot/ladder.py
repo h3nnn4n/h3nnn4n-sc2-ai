@@ -9,6 +9,7 @@ import sc2
 from sc2 import Race, Difficulty
 from sc2.player import Bot, Computer
 from sc2.sc2process import SC2Process
+from sc2.protocol import ConnectionAlreadyClosed
 from sc2.client import Client
 
 
@@ -61,7 +62,7 @@ async def join_ladder_game(host, port, players, realtime, portconfig, save_repla
             await client.save_replay(save_replay_as)
         await client.leave()
         await client.quit()
-    except ConnectionAlreadyClosed:  # Where is this defined?
+    except ConnectionAlreadyClosed:
         logging.error(f"Connection was closed before the game ended")
         return None
     finally:

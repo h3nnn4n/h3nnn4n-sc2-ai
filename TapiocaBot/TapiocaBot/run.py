@@ -1,11 +1,11 @@
-# pylint: disable=C0301
+# pylint: disable=C0301,E1102
 
 import sys
 import sc2
-from ladder import run_ladder_game
 from sc2 import Race, Difficulty
 from sc2.player import Bot, Computer
 from TapiocaBot import TapiocaBot
+from ladder import run_ladder_game
 
 
 maps = [
@@ -44,12 +44,14 @@ difficulty = difficulties[5]
 
 if __name__ == '__main__':
     if "--LadderServer" in sys.argv:
-        bot = Bot(Race.Protoss, TapiocaBot())
+        tapioca = TapiocaBot()
+        bot = Bot(Race.Protoss, tapioca)
         print("Starting ladder game...")
         run_ladder_game(bot)
     else:
         print("Starting local game...")
-        bot = Bot(Race.Protoss, TapiocaBot(verbose=True, visual_debug=True))
+        tapioca = TapiocaBot(verbose=True, visual_debug=True)
+        bot = Bot(Race.Protoss, tapioca)
         sc2.run_game(sc2.maps.get(selected_map), [
             bot,
             Computer(race, difficulty)

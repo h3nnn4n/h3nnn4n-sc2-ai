@@ -25,6 +25,16 @@ class ArmyManager:
         self.distance_timer = 0.675  # Time between distance checks
         self.send_attack_timer = 0
         self.resend_to_center_timer = 0
+        self.ignore_when_defending = [
+            UnitTypeId.OVERLORD,
+            UnitTypeId.OVERSEER,
+            UnitTypeId.OVERSEERSIEGEMODE,
+            UnitTypeId.PROBE,
+            UnitTypeId.SCV,
+            UnitTypeId.DRONE,
+            UnitTypeId.OBSERVER,
+            UnitTypeId.OBSERVERSIEGEMODE
+        ]
 
         self.threats = None
         self.leader = None
@@ -88,8 +98,9 @@ class ArmyManager:
             else:
                 info = self.soldiers[soldier_tag]
 
-                if needs_to_defend:
+                if needs_to_defend and info['state'] != 'attacking':
                     await self.send_defense(soldier_tag)
+
                 if info['state'] == 'new':
                     await self.move_to_center(soldier_tag)
                 elif info['state'] == 'moving_to_center':
@@ -209,7 +220,9 @@ class ArmyManager:
     def get_new_threat_to_defend_from(self):
         for structure_type in self.defend_around:
             for structure in self.bot.units(structure_type):
-                threats = self.bot.known_enemy_units.closer_than(self.threat_proximity, structure.position)
+                threats = self.bot.known_enemy_units.filter(
+                    lambda unit: unit.type_id not in self.ignore_when_defending
+                ).closer_than(self.threat_proximity, structure.position)
 
                 if threats.exists:
                     return threats.random

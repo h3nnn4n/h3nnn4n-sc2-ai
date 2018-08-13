@@ -84,6 +84,8 @@ class TapiocaBot(sc2.BotAI):
                 print('\n------------------------\n')
                 print('%8.2f %3d Rise and Shine' % (self.time, self.supply_used))
 
+            self.chat_send("Cry 'havoc', and let slips the Tapiocas of war!")
+
             return
 
         if self.build_order_manager.did_early_game_just_end():

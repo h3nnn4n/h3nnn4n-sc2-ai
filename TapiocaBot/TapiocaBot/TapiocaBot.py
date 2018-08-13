@@ -84,7 +84,7 @@ class TapiocaBot(sc2.BotAI):
                 print('\n------------------------\n')
                 print('%8.2f %3d Rise and Shine' % (self.time, self.supply_used))
 
-            self.chat_send("Cry 'havoc', and let slips the Tapiocas of war!")
+            await self.chat_send("Cry 'havoc', and let slips the Tapiocas of war!")
 
             return
 

@@ -344,7 +344,8 @@ class SpatialLlama(sc2.BotAI):
         if not self.can('expand'):
             return
 
-        if not self.already_pending(NEXUS) and self.can_afford(NEXUS):
+        if not self.already_pending(NEXUS) and self.can_afford(NEXUS) and \
+           self.bot.units(UnitTypeId.NEXUS).ready.amount >= 1:
             if self.verbose:
                 print('%6.2f expanding' % (self.time))
 

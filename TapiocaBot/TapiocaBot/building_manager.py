@@ -114,7 +114,8 @@ class BuildingManager:
         if not self.bot.coordinator.can('expand'):
             return
 
-        if not self.bot.already_pending(UnitTypeId.NEXUS) and self.bot.can_afford(UnitTypeId.NEXUS):
+        if not self.bot.already_pending(UnitTypeId.NEXUS) and self.bot.can_afford(UnitTypeId.NEXUS) and \
+           self.bot.units(UnitTypeId.NEXUS).ready.amount >= 1:
             await self.bot.expand_now()
             self.bot.coordinator.new_priority(None)
             if self.verbose:

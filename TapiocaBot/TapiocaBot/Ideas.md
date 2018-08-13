@@ -10,6 +10,15 @@ TODO:
  - Write a base controller and make all other inherit from it
  - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller
  - Buildings controllers should have no strategic logic inside
+ - Blink back Stalkers
+ - Research Zealog Legs and Blink
+ - Improve Expand logic
+ - Fix Expand Now breaking the game
+ - Harass
+ - Harass
+ - Harass
+ - Fix units not going back to attack after defending
+ - Implement focus fire (for broodlords specially)
 
 DONE:
  - 2 Gate fast expand

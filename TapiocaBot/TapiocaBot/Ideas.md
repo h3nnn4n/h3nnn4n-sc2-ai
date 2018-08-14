@@ -8,18 +8,27 @@ TODO:
  - Improve pylon and buildings placement
  - Code a controller for sentries and make it use guardian shield and force fields
  - Write a base controller and make all other inherit from it
- - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller
- - Buildings controllers should have no strategic logic inside
- - Blink back Stalkers
- - Research Zealog Legs and Blink
  - Improve Expand logic
- - Fix Expand Now breaking the game
  - Harass
  - Harass
  - Harass
  - Fix units not going back to attack after defending
  - Implement focus fire (for broodlords specially)
+ - Move all stategy logic to the coordinator (or a new class)
+ - Make the buildings_controller auto expand based on the need of minerals or gas
+ - Make the buildings_controller take gas only if needed (consider mineral gas ratio)
+ - Add support to prioritize researches (some or all) to the coordinator
+ - Fix the double expand bug
+ - Logic for observer
+
+WIP:
+ - Research Zealog Legs and Blink
+ - Blink back Stalkers
+
+ - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller
+ - Buildings controllers should have no strategic logic inside
 
 DONE:
  - 2 Gate fast expand
  - Pick up from the basic build order
+ - Fix Expand Now breaking the game

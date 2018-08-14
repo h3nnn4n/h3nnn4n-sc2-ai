@@ -1,4 +1,5 @@
 import random
+from math import ceil
 from sc2.ids.unit_typeid import UnitTypeId
 
 
@@ -114,10 +115,13 @@ class BuildingManager:
         if not self.bot.coordinator.can('expand'):
             return
 
-        if not self.bot.already_pending(UnitTypeId.NEXUS) and self.bot.can_afford(UnitTypeId.NEXUS) and \
+        lacking = self.auto_expand_mineral_threshold - self.number_of_minerals_available
+        number_of_bases_needed = ceil(lacking / 8.0)
+
+        if self.bot.already_pending(UnitTypeId.NEXUS) < number_of_bases_needed and \
+           self.bot.can_afford(UnitTypeId.NEXUS) and \
            self.bot.units(UnitTypeId.NEXUS).ready.amount >= 1:
             await self.bot.expand_now()
-            self.bot.coordinator.new_priority(None)
             if self.verbose:
                 print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))
 
@@ -193,14 +197,16 @@ class BuildingManager:
 
     async def expansion_controller(self):
         if self.bot.time > self.auto_expand_after:
-            number_of_minerals = sum([
+            self.number_of_minerals_available = sum([
                 self.bot.state.mineral_field.closer_than(10, x).amount
                 for x in self.bot.townhalls
             ])
 
-            if number_of_minerals <= self.auto_expand_mineral_threshold:
+            if self.number_of_minerals_available <= self.auto_expand_mineral_threshold:
                 print('%8.2f %3d WANT TO EXPAND' % (self.bot.time, self.bot.supply_used))
                 self.bot.coordinator.new_priority('expand')
+            else:
+                self.bot.coordinator.new_priority(None)
 
     def get_pylon(self):
         pylon = self.bot.units(UnitTypeId.PYLON).ready

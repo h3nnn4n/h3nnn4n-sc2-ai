@@ -2,6 +2,7 @@ import numpy as np
 import random
 import sys
 import sc2
+from math import ceil
 from sc2 import Race, Difficulty
 
 from sc2.player import Bot, Computer
@@ -155,11 +156,16 @@ class TapiocaBot(sc2.BotAI):
             total_units += self.units(unit_type).idle.amount
 
         number_of_minerals = sum([self.state.mineral_field.closer_than(10, x).amount for x in self.townhalls])
+        lacking = self.building_manager.auto_expand_mineral_threshold - number_of_minerals
 
         # Text
 
         messages = [
             '        priority: %s ' % self.coordinator.priority,
+            '   minerals_left: %3d' % number_of_minerals,
+            'minerals_lacking: %3d' % lacking,
+            '    bases_needed: %3d' % ceil(lacking / 8.0),
+            '   bases_pending: %3d' % self.already_pending(UnitTypeId.NEXUS),
             '       n_workers: %3d' % self.units(UnitTypeId.PROBE).amount,
             '       n_zealots: %3d' % self.units(UnitTypeId.ZEALOT).amount,
             '      n_stalkers: %3d' % self.units(UnitTypeId.STALKER).amount,
@@ -168,7 +174,6 @@ class TapiocaBot(sc2.BotAI):
             '       army_size: %3d' % self.army_manager.army_size(),
             '     ememy_units: %3d' % self.known_enemy_units.amount,
             'ememy_structures: %3d' % self.known_enemy_structures.amount,
-            '   minerals_left: %3d' % number_of_minerals,
         ]
 
         y = 0

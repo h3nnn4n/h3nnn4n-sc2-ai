@@ -19,6 +19,10 @@ TODO:
  - Make the buildings_controller take gas only if needed (consider mineral gas ratio)
  - Add support to prioritize researches (some or all) to the coordinator
  - Logic for observer
+ - Improve defense
+ - React to cheese
+ - Early probe scout
+ - Worker production has delays
 
 WIP:
  - Fix the double expand bug

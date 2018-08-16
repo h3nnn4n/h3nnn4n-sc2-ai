@@ -3,7 +3,6 @@ TODO:
  - Harass controller for glaive adepts
  - Warp Prism controller
  - Harass with the warp prism
- - Improve Worker control (instead of using distribute_workers)
  - Improve timings. Bot is falling about 20 ~ 30 secs behind in the opening
  - Improve pylon and buildings placement
  - Code a controller for sentries and make it use guardian shield and force fields
@@ -12,7 +11,6 @@ TODO:
  - Harass
  - Harass
  - Harass
- - Fix units not going back to attack after defending
  - Implement focus fire (for broodlords specially)
  - Move all stategy logic to the coordinator (or a new class)
  - Make the buildings_controller auto expand based on the need of minerals or gas
@@ -22,11 +20,18 @@ TODO:
  - Improve defense
  - React to cheese
  - Early probe scout
+ - Blink back Stalkers
+ - Use standard names (controller vs manager)
+ - Add scouting back (this time in the army manager) (Do we even need it?)
+ - Make the code more generic (to allow reuse for other races)
+ 
+FIXME
+ - Too many workers going to the geyser
+ - Fix the double expand bug
  - Worker production has delays
 
 WIP:
- - Fix the double expand bug
- - Blink back Stalkers
+ - Improve Worker control (instead of using distribute_workers)
 
  - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller
  - Buildings controllers should have no strategic logic inside

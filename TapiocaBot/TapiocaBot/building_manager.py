@@ -1,6 +1,7 @@
 import random
 from math import ceil
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.ability_id import AbilityId
 
 
 class BuildingManager:
@@ -17,12 +18,27 @@ class BuildingManager:
         self.gateways_per_nexus = 2
         self.robotics_facility_per_nexus = 1
 
+        self.nexus = {}
+
     async def step(self):
+        await self.update_nexus_list()
         await self.step_auto_build_assimilators()
         await self.step_auto_build_gateways()
         await self.step_auto_build_robotics_facility()
         await self.step_auto_build_forge()
         await self.step_auto_build_twilight_council()
+
+    async def update_nexus_list(self):
+        for nexus in self.bot.units(UnitTypeId.NEXUS):
+            if nexus.tag not in self.nexus.keys():
+                self.nexus[nexus.tag] = {'need_to_set_rally': True}
+
+                if self.verbose:
+                    print('%8.2f %3d Found new nexus' % (self.bot.time, self.bot.supply_used))
+
+                await self.set_nexus_rally(nexus)
+            elif self.nexus[nexus.tag]['need_to_set_rally']:
+                await self.set_nexus_rally(nexus)
 
     async def step_auto_build_assimilators(self):
         if not self.bot.coordinator.can('build'):
@@ -124,6 +140,15 @@ class BuildingManager:
             await self.bot.expand_now()
             if self.verbose:
                 print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))
+
+    async def set_nexus_rally(self, nexus):
+        abilities = await self.bot.get_available_abilities(nexus)
+
+        if AbilityId.RALLY_NEXUS in abilities:
+            await self.bot.do(nexus(AbilityId.RALLY_NEXUS, nexus.position))
+            self.nexus[nexus.tag]['need_to_set_rally'] = False
+            if self.verbose:
+                print('%8.2f %3d Setting rallypoint for nexus' % (self.bot.time, self.bot.supply_used))
 
     # Finds the pylon with more "space" next to it
     # Where more space == Less units

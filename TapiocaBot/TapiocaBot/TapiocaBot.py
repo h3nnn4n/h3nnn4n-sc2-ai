@@ -26,6 +26,7 @@ from gateway_controller import GatewayController
 from scouting_controller import ScoutingController
 from building_manager import BuildingManager
 from upgrades_controller import UpgradesController
+from worker_controller import WorkerController
 
 from coordinator import Coordinator
 
@@ -43,9 +44,9 @@ class TapiocaBot(sc2.BotAI):
 
         # Control Stuff
         self.researched_warpgate = False
-        self.maximum_workers = 66
 
         # Managers and controllers
+        self.worker_controller = WorkerController(bot=self, verbose=self.verbose)
         self.army_manager = ArmyManager(bot=self, verbose=self.verbose)
         self.scouting_controller = ScoutingController(bot=self, verbose=self.verbose)
         self.upgrades_controller = UpgradesController(bot=self, verbose=self.verbose)
@@ -70,8 +71,8 @@ class TapiocaBot(sc2.BotAI):
     def on_start(self):
         self.army_manager.init()
 
-        self.event_manager.add_event(self.distribute_workers, 10)
-        self.event_manager.add_event(self.handle_idle_workers, 0.5)
+        self.event_manager.add_event(self.worker_controller.step, 0.5)
+        self.event_manager.add_event(self.building_manager.update_nexus_list, 2.5)
         self.event_manager.add_event(self.build_order_manager.step, 0.5)
         self.event_manager.add_event(self.army_manager.step, 1.1)
         self.event_manager.add_event(self.coordinator.step, 2)
@@ -94,7 +95,6 @@ class TapiocaBot(sc2.BotAI):
             self.event_manager.add_event(self.building_manager.manage_supply, 1)
             self.event_manager.add_event(self.building_manager.expansion_controller, 5)
             self.event_manager.add_event(self.building_manager.build_nexus, 5)
-            self.event_manager.add_event(self.build_workers, 2.25)
             # self.event_manager.add_event(self.scouting_controller.step, 10)
             self.event_manager.add_event(self.building_manager.step, 2)
             self.event_manager.add_event(self.upgrades_controller.step, 5)
@@ -125,23 +125,6 @@ class TapiocaBot(sc2.BotAI):
     async def execute_order_queue(self):
         await self._client.actions(self.order_queue, game_data=self._game_data)
         self.order_queue = []
-
-    async def build_workers(self):
-        if not self.coordinator.can('build'):
-            return
-
-        nexus = self.units(UnitTypeId.NEXUS).ready.noqueue
-        n_workers = self.units(UnitTypeId.PROBE).amount
-
-        if nexus and n_workers < self.units(UnitTypeId.NEXUS).amount * 22 and n_workers < self.maximum_workers:
-            if self.can_afford(UnitTypeId.PROBE) and self.supply_left >= 1:
-                await self.do(nexus.random.train(UnitTypeId.PROBE))
-
-    async def handle_idle_workers(self):
-        idle_workers = self.units(UnitTypeId.PROBE).idle
-
-        if idle_workers.exists:
-            await self.distribute_workers()
 
     async def debug(self):
         if not self.visual_debug:

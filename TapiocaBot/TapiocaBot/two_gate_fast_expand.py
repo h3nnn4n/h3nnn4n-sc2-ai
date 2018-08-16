@@ -67,7 +67,7 @@ class TwoGateFastExpand:
         # 14 Pylon
         if probe_count == 14 and pylon_count == 0 and not pylon_pending:
             if self.bot.can_afford(UnitTypeId.PYLON):
-                await self.bot.building_manager.build_pylon()
+                await self.bot.building_controller.build_pylon()
                 if self.verbose:
                     print('%8.2f %3d Building Pylon' % (self.bot.time, self.bot.supply_used))
 
@@ -98,7 +98,7 @@ class TwoGateFastExpand:
         if ((probe_count == 16 and self.bot.units(UnitTypeId.ASSIMILATOR).amount == 0) or
            (probe_count == 17 and self.bot.units(UnitTypeId.ASSIMILATOR).amount == 1)) and gateway_count > 0:
             if self.bot.can_afford(UnitTypeId.ASSIMILATOR):
-                await self.bot.building_manager.build_assimilator()
+                await self.bot.building_controller.build_assimilator()
                 if self.verbose:
                     print('%8.2f %3d Building Assimilator' % (self.bot.time, self.bot.supply_used))
 
@@ -121,7 +121,7 @@ class TwoGateFastExpand:
         # 21 Pylon
         if probe_count == 21 and pylon_count == 1 and not pylon_pending:
             if self.bot.can_afford(UnitTypeId.PYLON):
-                await self.bot.building_manager.build_pylon()
+                await self.bot.building_controller.build_pylon()
                 if self.verbose:
                     print('%8.2f %3d Building Pylon' % (self.bot.time, self.bot.supply_used))
 

@@ -4,7 +4,7 @@
 from two_gate_fast_expand import TwoGateFastExpand
 
 
-class BuildOrderManager:
+class BuildOrderController:
     def __init__(self, build_order=None, bot=None, verbose=False):
         self.current_build_order = build_order
         self.bot = bot

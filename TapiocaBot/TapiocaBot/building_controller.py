@@ -4,7 +4,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
 
 
-class BuildingManager:
+class BuildingController:
     def __init__(self, bot=None, verbose=False):
         self.verbose = verbose
         self.bot = bot

@@ -2,7 +2,7 @@ import random
 from sc2.ids.unit_typeid import UnitTypeId
 
 
-class ArmyManager:
+class ArmyController:
     def __init__(self, bot=None, verbose=False):
         self.bot = bot
         self.verbose = verbose

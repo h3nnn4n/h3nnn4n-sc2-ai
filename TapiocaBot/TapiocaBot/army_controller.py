@@ -1,7 +1,7 @@
 from random import sample
 
 
-class ArmyManager:
+class ArmyController:
     def __init__(self, bot=None, verbose=False):
         self.bot = bot
         self.verbose = verbose

@@ -27,14 +27,9 @@ from scouting_controller import ScoutingController
 from building_controller import BuildingController
 from upgrades_controller import UpgradesController
 from worker_controller import WorkerController
+from army_controller import ArmyController
 
 from coordinator import Coordinator
-
-use_old_army_manager = False
-if use_old_army_manager:
-    from army_controller import ArmyController
-else:
-    from army_controller2 import ArmyController
 
 
 class TapiocaBot(sc2.BotAI):

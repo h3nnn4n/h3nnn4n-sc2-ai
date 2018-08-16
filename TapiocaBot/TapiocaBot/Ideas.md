@@ -21,22 +21,23 @@ TODO:
  - React to cheese
  - Early probe scout
  - Blink back Stalkers
- - Use standard names (controller vs manager)
  - Add scouting back (this time in the army manager) (Do we even need it?)
  - Make the code more generic (to allow reuse for other races)
+ - Maybe improve the worker controller? It is already faster than distribute_worker alone
  
 FIXME
- - Too many workers going to the geyser
  - Fix the double expand bug
- - Worker production has delays
 
 WIP:
- - Improve Worker control (instead of using distribute_workers)
+ - Use standard names (controller vs manager)
 
  - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller
  - Buildings controllers should have no strategic logic inside
 
 DONE:
+ - Improve Worker control (instead of using distribute_workers)
+ - Worker production has delays
+ - Too many workers going to the geyser
  - 2 Gate fast expand
  - Pick up from the basic build order
  - Fix Expand Now breaking the game

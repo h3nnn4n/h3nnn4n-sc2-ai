@@ -8,8 +8,9 @@ class ArmyController:
         self.verbose = verbose
 
         self.auto_recuit = True
-        self.minimum_army_size = 20
-        self.attack_trigger_radius = 6
+        self.attack_when_maxed_out = True
+        self.minimum_army_size = 40
+        self.attack_trigger_radius = 7
         self.stop_radius = 5
         self.units_available_for_attack = {
             UnitTypeId.ZEALOT: 'ZEALOT',
@@ -33,7 +34,13 @@ class ArmyController:
             UnitTypeId.SCV,
             UnitTypeId.DRONE,
             UnitTypeId.OBSERVER,
-            UnitTypeId.OBSERVERSIEGEMODE
+            UnitTypeId.OBSERVERSIEGEMODE,
+            UnitTypeId.CHANGELING,
+            UnitTypeId.CHANGELINGZEALOT,
+            UnitTypeId.CHANGELINGMARINESHIELD,
+            UnitTypeId.CHANGELINGMARINE,
+            UnitTypeId.CHANGELINGZERGLINGWINGS,
+            UnitTypeId.CHANGELINGZERGLING
         ]
 
         self.threats = None
@@ -127,7 +134,8 @@ class ArmyController:
         if self.bot.time - self.send_attack_timer >= self.distance_timer:
             self.send_attack_timer = self.bot.time
             close_units = self.bot.units.closer_than(self.attack_trigger_radius, self.map_center)
-            if close_units.amount >= self.minimum_army_size:
+            if close_units.amount >= self.minimum_army_size or \
+               (self.attack_when_maxed_out and self.bot.supply_left < 3 and self.bot.supply_cap == 200):
                 return True
 
         return False

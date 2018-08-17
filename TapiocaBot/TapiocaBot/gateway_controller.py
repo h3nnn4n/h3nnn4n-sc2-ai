@@ -28,6 +28,10 @@ class GatewayController:
 
         gateways = self.bot.units(UnitTypeId.GATEWAY).ready.noqueue
 
+        robo = self.bot.units(UnitTypeId.GATEWAY).ready.noqueue
+        if robo.amount > 0:
+            return
+
         for gateway in gateways:
             next_unit = self.get_next_unit()
 
@@ -42,6 +46,10 @@ class GatewayController:
 
     async def step_warpgates(self):
         if not self.bot.coordinator.can('build_gateway_units'):
+            return
+
+        robo = self.bot.units(UnitTypeId.GATEWAY).ready.noqueue
+        if robo.amount > 0:
             return
 
         for warpgate in self.bot.units(UnitTypeId.WARPGATE).ready:

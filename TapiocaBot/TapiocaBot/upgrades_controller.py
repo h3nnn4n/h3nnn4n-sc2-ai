@@ -9,7 +9,7 @@ class UpgradesController:
         self.verbose = verbose
         self.bot = bot
 
-        self.forge_research_priority = []  # 'ground_weapons', 'shield']
+        self.forge_research_priority = ['ground_weapons', 'shield']
         self.twilight_council_research_priority = ['charge', 'blink']
 
         self.forge_asap = False

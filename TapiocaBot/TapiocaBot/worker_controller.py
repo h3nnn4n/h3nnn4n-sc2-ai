@@ -13,7 +13,7 @@ class WorkerController:
 
         self.priority = ['MINERAL', 'GAS']
 
-        self.max_workers_on_gas = 15
+        self.max_workers_on_gas = 9
         self.current_workers_on_gas = 0
 
         self.maximum_workers = 66

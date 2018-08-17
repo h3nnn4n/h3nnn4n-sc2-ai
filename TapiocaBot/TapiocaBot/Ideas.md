@@ -23,10 +23,15 @@ TODO:
  - Blink back Stalkers
  - Add scouting back (this time in the army manager) (Do we even need it?)
  - Make the code more generic (to allow reuse for other races)
- - Maybe improve the worker controller? It is already faster than distribute_worker alone
+ - Oracle harass
  
 FIXME
  - Fix the double expand bug
+ - Maybe improve the worker controller? It is already faster than distribute_worker alone
+ - Worker_controller is not working as expected (misplaces workers sometimes)
+ - Sometimes units go all over the map when attacking (and die after getting picked off in small groups)
+ - Sometimes no units are built (seems like a bug after robo prioritization)
+ - Not expanding (Or taking forever)
 
 WIP:
  - Buildings controllers should have no strategic logic inside

@@ -60,8 +60,8 @@ class Coordinator:
 
             # Gateway stuff
             self.bot.event_manager.add_event(self.bot.gateway_controller.step, 1.0)
-            self.bot.gateway_controller.add_order((UnitTypeId.STALKER, 2))
-            self.bot.gateway_controller.add_order((UnitTypeId.ZEALOT, 1))
+            # self.bot.gateway_controller.add_order((UnitTypeId.STALKER, 1))
+            self.bot.gateway_controller.add_order((UnitTypeId.ZEALOT, 2))
 
             # Robo stuff
             self.bot.event_manager.add_event(self.bot.robotics_facility_controller.step, 1.0)

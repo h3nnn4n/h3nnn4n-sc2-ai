@@ -16,7 +16,8 @@ class BuildOrderController:
         }
 
     async def step(self):
-        await self.build_orders[self.current_build_order]()
+        if not self.finished_early_game:
+            await self.build_orders[self.current_build_order]()
 
     def did_early_game_just_end(self):
         finished = False

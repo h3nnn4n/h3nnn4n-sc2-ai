@@ -19,6 +19,9 @@ class TwoGateFastExpand:
             await self.step()
 
     async def step(self):
+        if self.bot.units(UnitTypeId.NEXUS).amount == 0:
+            return
+
         nexus = self.bot.units(UnitTypeId.NEXUS).ready.first
         nexus_count = self.bot.units(UnitTypeId.NEXUS).amount
         nexus_pending = self.bot.already_pending(UnitTypeId.NEXUS)

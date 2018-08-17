@@ -2,6 +2,7 @@
 # Annoying false positive
 
 from two_gate_fast_expand import TwoGateFastExpand
+from three_gate_blink_all_in import ThreeGateBlinkAllIn
 
 
 class BuildOrderController:
@@ -12,7 +13,8 @@ class BuildOrderController:
         self.finished_early_game = False
 
         self.build_orders = {
-            'two_gate_fast_expand': TwoGateFastExpand(bot=bot, verbose=verbose)
+            'two_gate_fast_expand': TwoGateFastExpand(bot=bot, verbose=verbose),
+            'three_gate_blink_all_in': ThreeGateBlinkAllIn(bot=bot, verbose=verbose)
         }
 
     async def step(self):

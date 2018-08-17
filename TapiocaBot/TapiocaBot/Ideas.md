@@ -20,7 +20,6 @@ TODO:
  - Improve defense
  - React to cheese
  - Early probe scout
- - Blink back Stalkers
  - Add scouting back (this time in the army manager) (Do we even need it?)
  - Make the code more generic (to allow reuse for other races)
  - Oracle harass
@@ -37,6 +36,8 @@ FIXME
 
 WIP:
  - Buildings controllers should have no strategic logic inside
+ - Add a blinkstalker all in
+ - Blink back Stalkers
 
 DONE:
  - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller

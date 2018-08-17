@@ -46,12 +46,14 @@ class TapiocaBot(sc2.BotAI):
         self.building_controller = BuildingController(bot=self, verbose=self.verbose)
         self.event_manager = EventManager()
         self.build_order_controller = BuildOrderController(
-            build_order='two_gate_fast_expand',
             verbose=self.verbose,
             bot=self
         )
-
-        self.coordinator = Coordinator(bot=self, verbose=self.verbose)
+        self.coordinator = Coordinator(
+            bot=self,
+            verbose=self.verbose,
+            build_order='three_gate_blink_all_in'
+        )
 
         self.order_queue = []
 

@@ -9,8 +9,12 @@ class UpgradesController:
         self.verbose = verbose
         self.bot = bot
 
-        self.forge_research_priority = ['ground_weapons', 'shield']
-        self.twilight_council_research_priority = ['charge', 'blink']
+        self.enable_cybernetics = False
+        self.enable_forge = False
+        self.enable_twilight = False
+
+        self.forge_research_priority = []  # 'ground_weapons', 'shield']
+        self.twilight_council_research_priority = []  # 'charge', 'blink']
 
         self.forge_asap = False
         self.twilight_council_asap = False
@@ -59,7 +63,7 @@ class UpgradesController:
         await self.manage_twilight_council_upgrades()
 
     async def manage_cyberbetics_upgrades(self):
-        if not self.bot.coordinator.can('research'):
+        if not self.bot.coordinator.can('research') or not self.enable_cybernetics:
             return
 
         if self.bot.units(UnitTypeId.CYBERNETICSCORE).ready.exists and \
@@ -73,7 +77,7 @@ class UpgradesController:
                 print('%8.2f %3d Researching warpgate' % (self.bot.time, self.bot.supply_used))
 
     async def manage_forge_upgrades(self):
-        if not self.bot.coordinator.can('research'):
+        if not self.bot.coordinator.can('research') or not self.enable_forge:
             return
 
         for forge in self.bot.units(UnitTypeId.FORGE).ready.noqueue:
@@ -93,7 +97,7 @@ class UpgradesController:
                         break
 
     async def manage_twilight_council_upgrades(self):
-        if not self.bot.coordinator.can('research'):
+        if not self.bot.coordinator.can('research') or not self.enable_twilight:
             return
 
         for twilight in self.bot.units(UnitTypeId.TWILIGHTCOUNCIL).ready.noqueue:

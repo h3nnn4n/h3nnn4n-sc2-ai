@@ -5,7 +5,7 @@ from sc2.ids.ability_id import AbilityId
 
 class WorkerController:
     def __init__(self, bot=None, verbose=False):
-        self.verbose = verbose
+        self.verbose = False  # verbose
         self.bot = bot
 
         self.auto_build_worker = False
@@ -50,7 +50,7 @@ class WorkerController:
         nexus = self.bot.units(UnitTypeId.NEXUS).ready.noqueue
         n_workers = self.bot.units(UnitTypeId.PROBE).amount
 
-        if nexus and n_workers < self.bot.units(UnitTypeId.NEXUS).amount * 22 and \
+        if nexus.exists and n_workers < self.bot.units(UnitTypeId.NEXUS).amount * 22 and \
            n_workers < self.maximum_workers:
             if self.bot.can_afford(UnitTypeId.PROBE) and self.bot.supply_left >= 1:
                 await self.bot.do(nexus.random.train(UnitTypeId.PROBE))

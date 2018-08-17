@@ -11,6 +11,8 @@ class Coordinator:
         self.expand_timeout = 30
         self.expand_timer = 0
 
+        self.prioritize_robo_units = True
+
         self.research_priority = None
 
     def new_priority(self, what, research_priority=None):
@@ -21,20 +23,31 @@ class Coordinator:
             self.expand_timer = self.bot.time
 
     def can(self, what):
+        no_priority = self.priority is None
         if what == 'expand':
             return self.priority == 'expand'
 
         if what == 'build':
-            return self.priority is None
+            return no_priority
 
         if what == 'build_gateway_units':
-            return self.priority is None
+            robo_idle = self.bot.units(UnitTypeId.GATEWAY).ready.noqueue.amount > 0
+
+            '''
+                i p =
+                0 0 1
+                0 1 1
+                1 0 1
+                1 1 0
+            '''
+
+            return no_priority and (not robo_idle or not self.prioritize_robo_units)
 
         if what == 'build_robotics_facility_units':
-            return self.priority is None
+            return no_priority
 
         if what == 'research':
-            return self.priority is None or self.priority == 'research'
+            return no_priority or self.priority == 'research'
 
     def is_this_the_research_priority(self, what):
         return self.research_priority == what

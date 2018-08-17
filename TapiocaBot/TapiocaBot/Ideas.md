@@ -32,6 +32,8 @@ FIXME
  - Sometimes units go all over the map when attacking (and die after getting picked off in small groups)
  - Sometimes no units are built (seems like a bug after robo prioritization)
  - Not expanding (Or taking forever)
+ - Fix one forge taking 2 upgrades while one is idle
+ - Fix expanding blocking other things when it could not
 
 WIP:
  - Buildings controllers should have no strategic logic inside

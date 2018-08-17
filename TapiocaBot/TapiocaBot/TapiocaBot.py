@@ -100,7 +100,7 @@ class TapiocaBot(sc2.BotAI):
 
         # Setup and info
 
-        font_size = 18
+        font_size = 14
 
         total_units = 0
         for unit_type in self.army_controller.units_available_for_attack.keys():
@@ -109,10 +109,15 @@ class TapiocaBot(sc2.BotAI):
         number_of_minerals = sum([self.state.mineral_field.closer_than(10, x).amount for x in self.townhalls])
         lacking = self.building_controller.auto_expand_mineral_threshold - number_of_minerals
 
+        robo_idle = self.units(UnitTypeId.ROBOTICSFACILITY).ready.noqueue.amount > 0
+
         # Text
 
         messages = [
             '        priority: %s ' % self.coordinator.priority,
+            '       robo_idle: %3d' % robo_idle,
+            '   robo_priority: %3d' % self.coordinator.prioritize_robo_units,
+            ' can_do_warpgate: %3d' % self.coordinator.can('build_gateway_units'),
             '   minerals_left: %3d' % number_of_minerals,
             'minerals_lacking: %3d' % lacking,
             '    bases_needed: %3d' % ceil(lacking / 8.0),
@@ -128,7 +133,7 @@ class TapiocaBot(sc2.BotAI):
         ]
 
         y = 0
-        inc = 0.025
+        inc = 0.018
 
         for message in messages:
             self._client.debug_text_screen(message, pos=(0.001, y), size=font_size)

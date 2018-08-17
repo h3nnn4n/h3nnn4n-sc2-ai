@@ -29,11 +29,10 @@ FIXME
  - Fix the double expand bug
 
 WIP:
-
- - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller
  - Buildings controllers should have no strategic logic inside
 
 DONE:
+ - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller
  - Use standard names (controller vs manager)
  - Improve Worker control (instead of using distribute_workers)
  - Worker production has delays

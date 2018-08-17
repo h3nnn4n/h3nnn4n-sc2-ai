@@ -10,14 +10,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from sc2.position import Point2, Point3
 
-# TODO:
-# This should not be used here since the main class
-# should have no logic
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.buff_id import BuffId
-from sc2.ids.upgrade_id import UpgradeId
-from sc2.ids.effect_id import EffectId
+from sc2.ids.unit_typeid import UnitTypeId  # Used for debugging
 
 from event_manager import EventManager
 from build_order_controller import BuildOrderController
@@ -38,7 +31,7 @@ class TapiocaBot(sc2.BotAI):
         self.visual_debug = visual_debug
 
         # Control Stuff
-        self.researched_warpgate = False
+        self.researched_warpgate = False  # Remove me later
 
         # Managers and controllers
         self.worker_controller = WorkerController(bot=self, verbose=self.verbose)
@@ -48,7 +41,6 @@ class TapiocaBot(sc2.BotAI):
         self.robotics_facility_controller = RoboticsFacilitiyController(
             bot=self,
             verbose=self.verbose,
-            on_idle_build=UnitTypeId.IMMORTAL
         )
         self.gateway_controller = GatewayController(bot=self, verbose=self.verbose, auto_morph_to_warpgate=True)
         self.building_controller = BuildingController(bot=self, verbose=self.verbose)
@@ -59,7 +51,7 @@ class TapiocaBot(sc2.BotAI):
             bot=self
         )
 
-        self.coordinator = Coordinator(bot=self)
+        self.coordinator = Coordinator(bot=self, verbose=self.verbose)
 
         self.order_queue = []
 
@@ -70,7 +62,9 @@ class TapiocaBot(sc2.BotAI):
         self.event_manager.add_event(self.building_controller.update_nexus_list, 2.5)
         self.event_manager.add_event(self.build_order_controller.step, 0.5)
         self.event_manager.add_event(self.army_controller.step, 1.1)
-        self.event_manager.add_event(self.coordinator.step, 2)
+        self.event_manager.add_event(self.coordinator.step, 1)
+
+        self.coordinator.on_start()
 
     async def on_step(self, iteration):
         sys.stdout.flush()
@@ -84,27 +78,6 @@ class TapiocaBot(sc2.BotAI):
             await self.chat_send("Cry 'havoc', and let slips the Tapiocas of war!")
 
             return
-
-        if self.build_order_controller.did_early_game_just_end():
-            print('             Enabling more stuff')
-            self.event_manager.add_event(self.building_controller.manage_supply, 1)
-            self.event_manager.add_event(self.building_controller.expansion_controller, 5)
-            self.event_manager.add_event(self.building_controller.build_nexus, 5)
-            # self.event_manager.add_event(self.scouting_controller.step, 10)
-            self.event_manager.add_event(self.building_controller.step, 2)
-            self.event_manager.add_event(self.upgrades_controller.step, 5)
-
-            # Gateway stuff
-            self.event_manager.add_event(self.gateway_controller.step, 1.0)
-            self.gateway_controller.add_order((UnitTypeId.STALKER, 2))
-            self.gateway_controller.add_order((UnitTypeId.ZEALOT, 1))
-
-            # Robo stuff
-            self.event_manager.add_event(self.robotics_facility_controller.step, 1.0)
-            self.robotics_facility_controller.add_order(UnitTypeId.OBSERVER)
-            self.robotics_facility_controller.add_order(UnitTypeId.IMMORTAL)
-            self.robotics_facility_controller.add_order(UnitTypeId.IMMORTAL)
-            self.robotics_facility_controller.add_order(UnitTypeId.IMMORTAL)
 
         events = self.event_manager.get_current_events(self.time)
         for event in events:

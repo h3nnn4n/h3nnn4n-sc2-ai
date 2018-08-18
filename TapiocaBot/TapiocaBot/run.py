@@ -13,6 +13,7 @@ maps = [
     '(2)16-BitLE',
     '(2)CatalystLE',
     '(2)LostandFoundLE',
+    '(4)DarknessSanctuaryLE',
     '(2)AcidPlantLE',
     '(2)DreamcatcherLE',
     '(2)RedshiftLE'
@@ -40,8 +41,6 @@ difficulties = [
 selected_map = sample(maps, k=1)[0]
 race = sample(races, k=1)[0]
 difficulty = difficulties[5]
-
-race = Race.Zerg
 
 
 if __name__ == '__main__':

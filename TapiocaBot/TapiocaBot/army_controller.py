@@ -23,7 +23,7 @@ class ArmyController:
         self.defend_around = [UnitTypeId.PYLON, UnitTypeId.NEXUS]
         self.threat_proximity = 20
 
-        self.distance_timer = 0.675  # Time between distance checks
+        self.distance_timer = 2.5  # Time between distance checks
         self.send_attack_timer = 0
         self.resend_to_center_timer = 0
         self.ignore_when_defending = [
@@ -165,10 +165,13 @@ class ArmyController:
     async def waiting_at_center(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)
 
-        if self.bot.time - self.soldiers[unit_tag]['resend_to_center_timer'] >= self.distance_timer:
+        if self.number_of_attacking_units() > self.minimum_army_size / 2.0:
+            self.soldiers[unit_tag]['state'] = 'attacking'
+            await self.bot.do(unit.attack(self.attack_target))
+        elif self.bot.time - self.soldiers[unit_tag]['resend_to_center_timer'] >= self.distance_timer:
             self.soldiers[unit_tag]['resend_to_center_timer'] = self.bot.time
             if unit.distance_to(self.map_center) > self.attack_trigger_radius:
-                if self.attack_target is not None and self.number_of_attacking_units() > 10:
+                if self.attack_target is not None and self.number_of_attacking_units() > self.minimum_army_size:
                     self.soldiers[unit_tag]['state'] = 'attacking'
                     await self.bot.do(unit.attack(self.attack_target))
                 else:

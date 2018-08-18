@@ -209,6 +209,8 @@ class ArmyController:
                 await self.bot.do(unit.attack(self.attack_target.position))
 
     async def stalker_micro(self, unit_tag):
+        font_size = 14
+
         unit = self.bot.units.find_by_tag(unit_tag)
 
         if self.bot.known_enemy_units.amount == 0:
@@ -218,41 +220,51 @@ class ArmyController:
             return
 
         closest_unit = self.bot.known_enemy_units.closest_to(unit)
-        distance_to_closest_unit = unit.distance_to(closest_unit)
+        distance_to_closest_unit = unit.distance_to(closest_unit) - unit.radius / 2 - closest_unit.radius / 2 + 0.1
 
         distance = closest_unit.ground_range - distance_to_closest_unit + 1
         step_back_position = unit.position.towards(closest_unit.position, distance)
 
-        self.bot._client.debug_sphere_out(unit, r=unit.ground_range, color=(0, 255, 255))
-        self.bot._client.debug_sphere_out(closest_unit, r=closest_unit.ground_range, color=(255, 0, 0))
+        our_range = unit.ground_range + unit.radius
+        enemy_range = closest_unit.ground_range + closest_unit.radius
+
+        self.bot._client.debug_sphere_out(unit, r=our_range, color=(0, 255, 255))
+        self.bot._client.debug_sphere_out(closest_unit, r=enemy_range, color=(255, 0, 0))
         self.bot._client.debug_line_out(unit, closest_unit, color=(127, 127, 255))
         self.bot._client.debug_line_out(unit, step_back_position, color=(127, 0, 255))
 
-        if unit.is_idle or distance_to_closest_unit > unit.sight_range:
+        if unit.is_idle:
             self.attack_target = self.get_something_to_attack()
             await self.bot.do(unit.attack(self.attack_target.position))
+
+            self.bot._client.debug_text_world('cant see', pos=unit.position3d, size=font_size)
             return
 
-        if unit.ground_range > closest_unit.ground_range:  # Stalker outrange target
-            if unit.ground_range > distance_to_closest_unit:  # But we are not in range
-                if unit.weapon_cooldown > 0:  # If weapon is on cool down do nothing
+        if our_range > enemy_range:  # Stalker outrange target
+            if our_range < distance_to_closest_unit:  # But we are not in range
+                self.bot._client.debug_text_world('too far', pos=unit.position3d, size=font_size)
+                if unit.weapon_cooldown > 0:  # If weapon is on cool down we right click the unit
                     await self.bot.do(unit.attack(closest_unit))
-                else:  # Else we right click the unit
+                else:  # Else we right click the unit too
                     await self.bot.do(unit.attack(closest_unit))
-            elif closest_unit.ground_range < distance_to_closest_unit:  # They are in out range but we arent in theirs
+            elif enemy_range + 0.1 < distance_to_closest_unit:  # They are in out range but we arent in theirs
+                self.bot._client.debug_text_world('ideal', pos=unit.position3d, size=font_size)
                 await self.bot.do(unit.attack(closest_unit))
             else:  # We are in their range but we can out range them
-                if unit.weapon_cooldown == 0:  # shoot first
-                    await self.bot.do(unit.attack(closest_unit))
-                else:
-                    distance = closest_unit.ground_range - distance_to_closest_unit
-                    step_back_position = unit.position.towards(closest_unit.position, distance)
+                # if unit.weapon_cooldown == 0:  # shoot first
+                #     await self.bot.do(unit.attack(closest_unit))
+                # else:
+                #     distance = enemy_range - distance_to_closest_unit
+                #     step_back_position = unit.position.towards(closest_unit.position, -distance)
 
-                    await self.bot.do(unit.move(step_back_position))
-                # distance = closest_unit.ground_range - distance_to_closest_unit
-                # step_back_position = unit.towards(closest_unit, distance)
+                #     await self.bot.do(unit.move(step_back_position))
+                distance = enemy_range - distance_to_closest_unit
+                step_back_position = unit.position.towards(closest_unit.position, -distance)
 
-                # await self.bot.do(unit.move(step_back_position))
+                await self.bot.do(unit.move(step_back_position))
+                self.bot._client.debug_text_world('too close', pos=unit.position3d, size=font_size)
+        else:
+            await self.bot.do(unit.attack(closest_unit))
 
     async def defend(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)

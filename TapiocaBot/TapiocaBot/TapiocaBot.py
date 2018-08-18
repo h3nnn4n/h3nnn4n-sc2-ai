@@ -63,7 +63,7 @@ class TapiocaBot(sc2.BotAI):
         self.event_manager.add_event(self.worker_controller.step, 0.5)
         self.event_manager.add_event(self.building_controller.update_nexus_list, 2.5)
         self.event_manager.add_event(self.build_order_controller.step, 0.5)
-        self.event_manager.add_event(self.army_controller.step, 0.5, jitter=0)
+        self.event_manager.add_event(self.army_controller.step, 0.25, jitter=0)
         self.event_manager.add_event(self.coordinator.step, 1)
 
         self.coordinator.on_start()
@@ -145,11 +145,14 @@ class TapiocaBot(sc2.BotAI):
 
         # 3D text
 
-        for tag in self.army_controller.soldiers:
-            unit = self.units.find_by_tag(tag)
-            if unit is not None:
-                message = self.army_controller.soldiers[tag]['state']
-                self._client.debug_text_world(message, pos=unit.position3d, size=font_size)
+        debug_army_state = False
+
+        if debug_army_state:
+            for tag in self.army_controller.soldiers:
+                unit = self.units.find_by_tag(tag)
+                if unit is not None:
+                    message = self.army_controller.soldiers[tag]['state']
+                    self._client.debug_text_world(message, pos=unit.position3d, size=font_size)
 
         # Spheres
 

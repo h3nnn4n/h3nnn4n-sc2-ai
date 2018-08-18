@@ -158,24 +158,9 @@ class ThreeGateBlinkAllIn:
             if self.verbose:
                 print('%8.2f %3d Researching Warpgate' % (self.bot.time, self.bot.supply_used))
 
-        # @100% Cybernetics core -> Build 2 adepts
-        if gateways.ready.amount > 0 and self.adepts_warped_in < 2 and \
-           self.bot.can_afford(UnitTypeId.ADEPT) and \
-           self.bot.units(UnitTypeId.ADEPT).amount < 2:
-            for gateway in self.bot.units(UnitTypeId.GATEWAY).ready.noqueue:
-                abilities = await self.bot.get_available_abilities(gateway)
-                if self.bot.can_afford(AbilityId.TRAIN_ADEPT) and \
-                   AbilityId.TRAIN_ADEPT in abilities and \
-                   self.bot.can_afford(UnitTypeId.ADEPT):
-                    await self.bot.do(gateway.train(UnitTypeId.ADEPT))
-                    self.adepts_warped_in += 1
-                    if self.verbose:
-                        print('%8.2f %3d Warping in an Adept' % (self.bot.time, self.bot.supply_used))
-                    break
-
         # @2 Adepts -> 2 Stalkers
         if self.bot.units(UnitTypeId.GATEWAY).ready.amount > 0 and \
-           self.stalkers_warped_in < 2 and self.adepts_warped_in >= 2 and \
+           self.stalkers_warped_in < 2 and \
            self.bot.can_afford(UnitTypeId.STALKER):
             for gateway in self.bot.units(UnitTypeId.GATEWAY).ready.noqueue:
                 abilities = await self.bot.get_available_abilities(gateway)
@@ -189,8 +174,8 @@ class ThreeGateBlinkAllIn:
                     break
 
         # twilight council when possible
-        if self.bot.supply_used > 21 and nexus_count == 1 and pylon_count == 2 and \
-           self.stalkers_warped_in >= 2 and self.adepts_warped_in >= 2 and \
+        if self.bot.supply_used >= 21 and nexus_count == 1 and pylon_count == 2 and \
+           self.stalkers_warped_in >= 2 and \
            twilight_count == 0 and not twilight_pending and gateway_warpgate_count >= 2:
             if self.bot.can_afford(UnitTypeId.TWILIGHTCOUNCIL):
                 pylon = self.bot.units(UnitTypeId.PYLON).ready.random

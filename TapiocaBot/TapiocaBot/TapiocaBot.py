@@ -63,10 +63,12 @@ class TapiocaBot(sc2.BotAI):
         self.event_manager.add_event(self.worker_controller.step, 0.5)
         self.event_manager.add_event(self.building_controller.update_nexus_list, 2.5)
         self.event_manager.add_event(self.build_order_controller.step, 0.5)
-        self.event_manager.add_event(self.army_controller.step, 1.1)
+        self.event_manager.add_event(self.army_controller.step, 0.5, jitter=0)
         self.event_manager.add_event(self.coordinator.step, 1)
 
         self.coordinator.on_start()
+
+        # self._client.game_step = 2
 
     async def on_step(self, iteration):
         sys.stdout.flush()
@@ -151,47 +153,53 @@ class TapiocaBot(sc2.BotAI):
 
         # Spheres
 
-        leader_tag = self.army_controller.leader
-        for soldier_tag in self.army_controller.soldiers:
-            soldier_unit = self.units.find_by_tag(soldier_tag)
+        debug_army_groups = False
 
-            if soldier_unit is not None:
-                if soldier_tag == leader_tag:
-                    self._client.debug_sphere_out(soldier_unit, r=1, color=(255, 0, 0))
-                else:
-                    self._client.debug_sphere_out(soldier_unit, r=1, color=(0, 0, 255))
+        if debug_army_groups:
+            leader_tag = self.army_controller.leader
+            for soldier_tag in self.army_controller.soldiers:
+                soldier_unit = self.units.find_by_tag(soldier_tag)
+
+                if soldier_unit is not None:
+                    if soldier_tag == leader_tag:
+                        self._client.debug_sphere_out(soldier_unit, r=1, color=(255, 0, 0))
+                    else:
+                        self._client.debug_sphere_out(soldier_unit, r=1, color=(0, 0, 255))
 
         # Lines
 
-        if self.army_controller.army_size() > 0:
-            leader_tag = self.army_controller.leader
-            leader_unit = self.units.find_by_tag(leader_tag)
+        if debug_army_groups:
+            if self.army_controller.army_size() > 0:
+                leader_tag = self.army_controller.leader
+                leader_unit = self.units.find_by_tag(leader_tag)
 
-            for soldier_tag in self.army_controller.soldiers:
-                if soldier_tag == leader_tag:
-                    continue
+                for soldier_tag in self.army_controller.soldiers:
+                    if soldier_tag == leader_tag:
+                        continue
 
-                soldier_unit = self.units.find_by_tag(soldier_tag)
-                if soldier_unit is not None:
-                    leader_tag = self.army_controller.leader
-                    leader_unit = self.units.find_by_tag(leader_tag)
-                    if leader_unit is not None:
-                        self._client.debug_line_out(leader_unit, soldier_unit, color=(0, 255, 255))
+                    soldier_unit = self.units.find_by_tag(soldier_tag)
+                    if soldier_unit is not None:
+                        leader_tag = self.army_controller.leader
+                        leader_unit = self.units.find_by_tag(leader_tag)
+                        if leader_unit is not None:
+                            self._client.debug_line_out(leader_unit, soldier_unit, color=(0, 255, 255))
 
         # Attack Lines
+        debug_army_attack = False
 
-        if self.army_controller.army_size() > 0:
-            for soldier_tag in self.army_controller.soldiers:
-                soldier_unit = self.units.find_by_tag(soldier_tag)
+        if debug_army_attack:
+            if self.army_controller.army_size() > 0:
+                for soldier_tag in self.army_controller.soldiers:
+                    soldier_unit = self.units.find_by_tag(soldier_tag)
 
-                if soldier_unit is not None and \
-                   self.army_controller.soldiers[soldier_tag]['state'] == 'attacking' and \
-                   self.army_controller.attack_target is not None:
-                    self._client.debug_line_out(
-                        soldier_unit,
-                        self.army_controller.attack_target,
-                        color=(255, 0, 0)
-                    )
+                    if soldier_unit is not None and \
+                       self.army_controller.soldiers[soldier_tag]['state'] == 'attacking' and \
+                       self.army_controller.attack_target is not None:
+                        self._client.debug_line_out(
+                            soldier_unit,
+                            self.army_controller.attack_target,
+                            color=(255, 127, 0)
+                        )
 
         # Sens the debug info to the game
         await self._client.send_debug()

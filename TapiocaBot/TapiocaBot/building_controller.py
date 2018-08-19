@@ -54,8 +54,7 @@ class BuildingController:
         number_of_assimilators = self.bot.units(UnitTypeId.ASSIMILATOR).amount
         number_of_nexus = self.bot.units(UnitTypeId.NEXUS).amount
 
-        if total_workers_on_gas < self.auto_expand_gas_thresehold and \
-           number_of_assimilators < number_of_nexus * 2:
+        if number_of_assimilators < number_of_nexus * 2:
             await self.build_assimilator()
 
     async def step_auto_build_gateways(self):
@@ -144,9 +143,6 @@ class BuildingController:
                 print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))
 
     async def step_auto_build_nexus(self):
-        if not self.bot.coordinator.can('expand'):
-            return
-
         if not self.bot.already_pending(UnitTypeId.NEXUS) and \
            self.bot.can_afford(UnitTypeId.NEXUS) and self.nexus_condition(self):
             await self.bot.expand_now()

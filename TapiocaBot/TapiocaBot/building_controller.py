@@ -19,8 +19,9 @@ class BuildingController:
         self.robotics_facility_per_nexus = 1
 
         self.nexus = {}
-        
+
         self.twilight_condition = lambda _: False
+        self.nexus_condition = lambda _: False
 
     async def step(self):
         await self.update_nexus_list()
@@ -138,6 +139,16 @@ class BuildingController:
         if self.bot.already_pending(UnitTypeId.NEXUS) < number_of_bases_needed and \
            self.bot.can_afford(UnitTypeId.NEXUS) and \
            self.bot.units(UnitTypeId.NEXUS).ready.amount >= 1:
+            await self.bot.expand_now()
+            if self.verbose:
+                print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))
+
+    async def step_auto_build_nexus(self):
+        if not self.bot.coordinator.can('expand'):
+            return
+
+        if not self.bot.already_pending(UnitTypeId.NEXUS) and \
+           self.bot.can_afford(UnitTypeId.NEXUS) and self.nexus_condition(self):
             await self.bot.expand_now()
             if self.verbose:
                 print('%8.2f %3d Expanding' % (self.bot.time, self.bot.supply_used))

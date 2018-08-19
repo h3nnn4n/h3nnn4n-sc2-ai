@@ -27,7 +27,7 @@ class ArmyController:
         self.distance_timer = 2.5  # Time between distance checks
         self.send_attack_timer = 0
         self.resend_to_center_timer = 0
-        self.ignore_when_defending = [
+        self.units_to_ignore_defending = [
             UnitTypeId.OVERLORD,
             UnitTypeId.OVERSEER,
             UnitTypeId.OVERSEERSIEGEMODE,
@@ -45,6 +45,21 @@ class ArmyController:
             UnitTypeId.EGG,
             UnitTypeId.OBSERVER,
             UnitTypeId.INTERCEPTOR,
+            UnitTypeId.CREEPTUMOR,
+            UnitTypeId.CREEPTUMORBURROWED,
+            UnitTypeId.CREEPTUMORQUEEN,
+            UnitTypeId.CREEPTUMORMISSILE
+        ]
+
+        self.units_to_ignore_attacking = [
+            UnitTypeId.CHANGELING,
+            UnitTypeId.CHANGELINGZEALOT,
+            UnitTypeId.CHANGELINGMARINESHIELD,
+            UnitTypeId.CHANGELINGMARINE,
+            UnitTypeId.CHANGELINGZERGLINGWINGS,
+            UnitTypeId.CHANGELINGZERGLING,
+            UnitTypeId.EGG,
+            UnitTypeId.OBSERVER,
             UnitTypeId.CREEPTUMOR,
             UnitTypeId.CREEPTUMORBURROWED,
             UnitTypeId.CREEPTUMORQUEEN,
@@ -222,13 +237,20 @@ class ArmyController:
 
         unit = self.bot.units.find_by_tag(unit_tag)
 
-        if self.bot.known_enemy_units.amount == 0:
+        if self.bot.known_enemy_units.exclude_type(self.units_to_ignore_attacking).amount == 0:
             if unit.is_idle:
                 self.attack_target = self.get_something_to_attack()
                 await self.bot.do(unit.attack(self.attack_target.position))
             return
 
-        closest_unit = self.bot.known_enemy_units.closest_to(unit)
+        all_enemy_units = self.bot.known_enemy_units.exclude_type(self.units_to_ignore_attacking)
+        enemy_units = all_enemy_units.not_structure
+
+        if enemy_units.exists:
+            closest_unit = enemy_units.closest_to(unit)
+        else:
+            closest_unit = all_enemy_units.closest_to(unit)
+
         distance_to_closest_unit = unit.distance_to(closest_unit) - unit.radius / 2 - closest_unit.radius / 2 + 0.1
 
         distance = closest_unit.ground_range - distance_to_closest_unit + 1
@@ -263,7 +285,7 @@ class ArmyController:
                 if closest_unit.is_structure:  # Get closer to structures
                     if visual_debug:
                         self.bot._client.debug_text_world('atk structure', pos=unit.position3d, size=font_size)
-                    if random.random() < 0.05:
+                    if random.random() < 0.5:
                         advance_position = unit.position.towards_with_random_angle(closest_unit.position)
                         await self.bot.do(unit.move(advance_position))
                     else:
@@ -351,7 +373,7 @@ class ArmyController:
         for structure_type in self.defend_around:
             for structure in self.bot.units(structure_type):
                 threats = self.bot.known_enemy_units.filter(
-                    lambda unit: unit.type_id not in self.ignore_when_defending
+                    lambda unit: unit.type_id not in self.units_to_ignore_defending
                 ).closer_than(self.threat_proximity, structure.position)
 
                 if threats.exists:

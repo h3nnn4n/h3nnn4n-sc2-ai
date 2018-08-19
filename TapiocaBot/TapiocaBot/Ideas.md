@@ -36,11 +36,11 @@
 - Not expanding (Or taking forever)
 - Fix one forge taking 2 upgrades while one is idle
 - Fix expanding blocking other things when it could not
-- Move stalkers out of the way then others are trying to blink back
 - Consider distance and range for stalker micro (i.e ravager can attack even if ling in the front cant)
 
 ### WIP
 
+- Move stalkers out of the way then others are trying to blink back
 - Buildings controllers should have no strategic logic inside
 - Improve stalker army control
 

@@ -94,12 +94,18 @@ class Coordinator:
         self.bot.robotics_facility_controller.on_idle_build = UnitTypeId.IMMORTAL
 
     def three_gate_blink_stalker_all_in(self):
+        self.bot.event_manager.add_event(self.bot.building_controller.step_auto_build_assimilators, 1)
         self.bot.event_manager.add_event(self.bot.building_controller.step_auto_build_twilight_council, 1)
+        self.bot.event_manager.add_event(self.bot.building_controller.step_auto_build_nexus, 1)
         self.bot.event_manager.add_event(self.bot.building_controller.manage_supply, 1)
         self.bot.event_manager.add_event(self.bot.building_controller.step_auto_build_gateways, 2)
         self.bot.building_controller.gateways_per_nexus = 3
         self.bot.building_controller.twilight_condition = lambda x: (
             x.bot.units(UnitTypeId.CYBERNETICSCORE).ready.amount >= 0
+        )
+        self.bot.building_controller.nexus_condition = lambda x: (
+            sum([x.bot.state.mineral_field.closer_than(10, i).amount for i in x.bot.townhalls]) <= 14 or
+            x.bot.minerals > 600
         )
 
         self.bot.event_manager.add_event(self.bot.gateway_controller.step, 1)

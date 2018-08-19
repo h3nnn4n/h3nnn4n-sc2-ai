@@ -181,25 +181,18 @@ class BuildingController:
                     await self.bot.do(worker.build(UnitTypeId.ASSIMILATOR, vg))
 
     async def manage_supply(self):
-        for _ in range(5):  # Only tries 5 different placements
-            nexus = self.bot.units(UnitTypeId.NEXUS).ready
+        nexus = self.bot.units(UnitTypeId.NEXUS).ready
 
-            if not nexus:
-                return
+        if not nexus.exists:
+            return
 
-            nexus = nexus.random
+        nexus = nexus.random
 
-            if self.bot.supply_left < 8 and not self.bot.already_pending(UnitTypeId.PYLON):
-                for _ in range(self.pylons_per_round):
-                    if self.bot.can_afford(UnitTypeId.PYLON):
-                        pos = await self.bot.find_placement(UnitTypeId.PYLON, nexus.position, placement_step=2)
-                        mineral_fields = self.bot.state.mineral_field.closer_than(8, nexus).closer_than(4, pos)
+        if self.bot.supply_left < 8 and not self.bot.already_pending(UnitTypeId.PYLON):
+            if self.bot.can_afford(UnitTypeId.PYLON):
+                pos = await self.bot.find_placement(UnitTypeId.PYLON, nexus.position, placement_step=2)
 
-                        if mineral_fields:
-                            continue
-                        else:
-                            await self.bot.build(UnitTypeId.PYLON, near=pos)
-                            break
+                await self.bot.build(UnitTypeId.PYLON, near=pos)
 
     async def build_pylon(self):
         for _ in range(5):  # Only tries 5 different placements

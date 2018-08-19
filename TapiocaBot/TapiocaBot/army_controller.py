@@ -285,14 +285,14 @@ class ArmyController:
                 if closest_unit.is_structure:  # Get closer to structures
                     if visual_debug:
                         self.bot._client.debug_text_world('atk structure', pos=unit.position3d, size=font_size)
-                    if random.random() < 0.5:
+                    if unit.weapon_cooldown > 0:
                         advance_position = unit.position.towards_with_random_angle(closest_unit.position)
                         await self.bot.do(unit.move(advance_position))
                     else:
                         await self.bot.do(unit.attack(closest_unit))
                 else:
-                    if distance_to_closest_unit < enemy_range + 1:
-                        step_back_position = unit.position.towards(closest_unit.position, -1)
+                    if our_range - distance_to_closest_unit > 0.75:
+                        step_back_position = unit.position.towards(closest_unit.position, -2)
                         if visual_debug:
                             self.bot._client.debug_text_world('closeish', pos=unit.position3d, size=font_size)
                         await self.bot.do(unit.move(step_back_position))

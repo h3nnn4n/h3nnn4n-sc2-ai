@@ -1,5 +1,6 @@
 import random
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.ability_id import AbilityId
 
 
 class ArmyController:
@@ -208,6 +209,7 @@ class ArmyController:
                 await self.bot.do(unit.attack(self.attack_target.position))
 
     async def stalker_micro(self, unit_tag):
+        # self.bot._client.game_step = 2
         visual_debug = False
         font_size = 14
 
@@ -269,12 +271,41 @@ class ArmyController:
 
                 #     await self.bot.do(unit.move(step_back_position))
                 # distance = enemy_range - distance_to_closest_unit
-                step_back_position = unit.position.towards(closest_unit.position, -1)
-                await self.bot.do(unit.move(step_back_position))
+
+                abilities = await self.bot.get_available_abilities(unit)
+
+                if unit.shield_percentage < 0.1 and AbilityId.EFFECT_BLINK_STALKER in abilities:
+                    blink_back_position = unit.position.towards(closest_unit.position, -8)
+                    await self.bot.do(unit(AbilityId.EFFECT_BLINK_STALKER, blink_back_position))
+                else:
+                    step_back_position = unit.position.towards(closest_unit.position, -1)
+                    await self.bot.do(unit.move(step_back_position))
+
                 if visual_debug:
                     self.bot._client.debug_text_world('too close', pos=unit.position3d, size=font_size)
         else:
-            await self.bot.do(unit.attack(closest_unit))
+            abilities = await self.bot.get_available_abilities(unit)
+
+            if unit.shield_percentage < 0.1 and AbilityId.EFFECT_BLINK_STALKER in abilities:
+                blink_back_position = unit.position.towards(closest_unit.position, -8)
+                await self.bot.do(unit(AbilityId.EFFECT_BLINK_STALKER, blink_back_position))
+            else:
+                if enemy_range >= distance_to_closest_unit:
+                    if unit.shield_percentage < 0.1 and AbilityId.EFFECT_BLINK_STALKER in abilities:
+                        blink_back_position = unit.position.towards(closest_unit.position, -8)
+                        await self.bot.do(unit(AbilityId.EFFECT_BLINK_STALKER, blink_back_position))
+                        if visual_debug:
+                            self.bot._client.debug_text_world('blink', pos=unit.position3d, size=font_size)
+                    else:
+                        if unit.weapon_cooldown == 0:
+                            await self.bot.do(unit.attack(closest_unit))
+                            if visual_debug:
+                                self.bot._client.debug_text_world('YOLO', pos=unit.position3d, size=font_size)
+                        else:
+                            step_back_position = unit.position.towards(closest_unit.position, -1)
+                            await self.bot.do(unit.move(step_back_position))
+                            if visual_debug:
+                                self.bot._client.debug_text_world('back', pos=unit.position3d, size=font_size)
 
     async def defend(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)

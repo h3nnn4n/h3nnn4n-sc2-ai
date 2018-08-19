@@ -19,6 +19,8 @@ class BuildingController:
         self.robotics_facility_per_nexus = 1
 
         self.nexus = {}
+        
+        self.twilight_condition = lambda _: False
 
     async def step(self):
         await self.update_nexus_list()
@@ -117,10 +119,9 @@ class BuildingController:
         if pylon is None:
             return
 
-        number_of_forges = self.bot.units(UnitTypeId.FORGE).ready.amount
         number_of_twilights = self.bot.units(UnitTypeId.TWILIGHTCOUNCIL).amount
 
-        if number_of_forges >= 1 and number_of_twilights == 0:
+        if number_of_twilights == 0 and self.twilight_condition(self):
             if self.bot.can_afford(UnitTypeId.TWILIGHTCOUNCIL) and \
                not self.bot.already_pending(UnitTypeId.TWILIGHTCOUNCIL):
                 await self.bot.build(UnitTypeId.TWILIGHTCOUNCIL, near=pylon)

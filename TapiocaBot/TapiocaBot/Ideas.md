@@ -24,6 +24,7 @@
 - Add scouting back (this time in the army manager) (Do we even need it?)
 - Make the code more generic (to allow reuse for other races)
 - Oracle harass
+- Allow 3gate stalker all in to expand and go on with the game if the presure wont break in
 
 ## FIXME
 
@@ -35,18 +36,20 @@
 - Not expanding (Or taking forever)
 - Fix one forge taking 2 upgrades while one is idle
 - Fix expanding blocking other things when it could not
-- Fix twilight council sometimes (or all) not being built when 3gate blink stalker all in
+- Move stalkers out of the way then others are trying to blink back
 
 ### WIP
 
+- Ignore zergs as targets eggs
 - Buildings controllers should have no strategic logic inside
-- Add a blinkstalker all in
-- Blink back Stalkers
 - Stalker micro
 - Improve stalker army control
 
 #### DONE
 
+- Fix twilight council sometimes (or all) not being built when 3gate blink stalker all in
+- Add a blinkstalker all in
+- Blink back Stalkers
 - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller
 - Use standard names (controller vs manager)
 - Improve Worker control (instead of using distribute_workers)

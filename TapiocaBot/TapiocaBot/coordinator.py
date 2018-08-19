@@ -94,9 +94,13 @@ class Coordinator:
         self.bot.robotics_facility_controller.on_idle_build = UnitTypeId.IMMORTAL
 
     def three_gate_blink_stalker_all_in(self):
+        self.bot.event_manager.add_event(self.bot.building_controller.step_auto_build_twilight_council, 1)
         self.bot.event_manager.add_event(self.bot.building_controller.manage_supply, 1)
         self.bot.event_manager.add_event(self.bot.building_controller.step_auto_build_gateways, 2)
         self.bot.building_controller.gateways_per_nexus = 3
+        self.bot.building_controller.twilight_condition = lambda x: (
+            x.bot.units(UnitTypeId.CYBERNETICSCORE).ready.amount >= 0
+        )
 
         self.bot.event_manager.add_event(self.bot.gateway_controller.step, 1)
         self.bot.gateway_controller.add_order((UnitTypeId.STALKER, 1))
@@ -105,7 +109,7 @@ class Coordinator:
         self.bot.upgrades_controller.enable_twilight = True
         self.bot.upgrades_controller.twilight_council_research_priority.append('blink')
 
-        self.bot.army_controller.minimum_army_size = 1  # 10
+        self.bot.army_controller.minimum_army_size = 4  # 10
         self.bot.army_controller.units_available_for_attack = {
             UnitTypeId.STALKER: 'STALKER'
         }

@@ -253,8 +253,7 @@ class ArmyController:
 
         distance_to_closest_unit = unit.distance_to(closest_unit) - unit.radius / 2 - closest_unit.radius / 2 + 0.1
 
-        distance = closest_unit.ground_range - distance_to_closest_unit + 1
-        step_back_position = unit.position.towards(closest_unit.position, distance)
+        step_back_position = unit.position.towards(closest_unit.position, -2)
 
         our_range = unit.ground_range + unit.radius
         enemy_range = closest_unit.ground_range + closest_unit.radius
@@ -285,8 +284,8 @@ class ArmyController:
                 if closest_unit.is_structure:  # Get closer to structures
                     if visual_debug:
                         self.bot._client.debug_text_world('atk structure', pos=unit.position3d, size=font_size)
-                    if unit.weapon_cooldown > 0:
-                        advance_position = unit.position.towards_with_random_angle(closest_unit.position)
+                    if unit.weapon_cooldown > 0 and distance_to_closest_unit > closest_unit.radius + 1:
+                        advance_position = unit.position.towards(closest_unit.position, distance=1)
                         await self.bot.do(unit.move(advance_position))
                     else:
                         await self.bot.do(unit.attack(closest_unit))
@@ -321,7 +320,7 @@ class ArmyController:
 
                 if visual_debug:
                     self.bot._client.debug_text_world('too close', pos=unit.position3d, size=font_size)
-        else:
+        else:  # we either have the same range or we have less range
             abilities = await self.bot.get_available_abilities(unit)
 
             if unit.shield_percentage < 0.1 and AbilityId.EFFECT_BLINK_STALKER in abilities:

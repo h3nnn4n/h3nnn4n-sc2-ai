@@ -37,16 +37,17 @@
 - Fix one forge taking 2 upgrades while one is idle
 - Fix expanding blocking other things when it could not
 - Move stalkers out of the way then others are trying to blink back
+- Consider distance and range for stalker micro (i.e ravager can attack even if ling in the front cant)
 
 ### WIP
 
-- Ignore zergs as targets eggs
 - Buildings controllers should have no strategic logic inside
-- Stalker micro
 - Improve stalker army control
 
 #### DONE
 
+- Stalker micro
+- Ignore zergs eggs as targets
 - Fix twilight council sometimes (or all) not being built when 3gate blink stalker all in
 - Add a blinkstalker all in
 - Blink back Stalkers

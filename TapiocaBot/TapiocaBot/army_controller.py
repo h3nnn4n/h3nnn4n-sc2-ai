@@ -41,7 +41,14 @@ class ArmyController:
             UnitTypeId.CHANGELINGMARINESHIELD,
             UnitTypeId.CHANGELINGMARINE,
             UnitTypeId.CHANGELINGZERGLINGWINGS,
-            UnitTypeId.CHANGELINGZERGLING
+            UnitTypeId.CHANGELINGZERGLING,
+            UnitTypeId.EGG,
+            UnitTypeId.OBSERVER,
+            UnitTypeId.INTERCEPTOR,
+            UnitTypeId.CREEPTUMOR,
+            UnitTypeId.CREEPTUMORBURROWED,
+            UnitTypeId.CREEPTUMORQUEEN,
+            UnitTypeId.CREEPTUMORMISSILE
         ]
 
         self.threats = None
@@ -253,15 +260,24 @@ class ArmyController:
                 else:  # Else we right click the unit too
                     await self.bot.do(unit.attack(closest_unit))
             elif enemy_range + 0.1 < distance_to_closest_unit:  # They are in our range but we arent in theirs
-                if distance_to_closest_unit < enemy_range + 1:
-                    step_back_position = unit.position.towards(closest_unit.position, -1)
+                if closest_unit.is_structure:  # Get closer to structures
                     if visual_debug:
-                        self.bot._client.debug_text_world('closeish', pos=unit.position3d, size=font_size)
-                    await self.bot.do(unit.move(step_back_position))
+                        self.bot._client.debug_text_world('atk structure', pos=unit.position3d, size=font_size)
+                    if random.random() < 0.05:
+                        advance_position = unit.position.towards_with_random_angle(closest_unit.position)
+                        await self.bot.do(unit.move(advance_position))
+                    else:
+                        await self.bot.do(unit.attack(closest_unit))
                 else:
-                    if visual_debug:
-                        self.bot._client.debug_text_world('ideal', pos=unit.position3d, size=font_size)
-                    await self.bot.do(unit.attack(closest_unit))
+                    if distance_to_closest_unit < enemy_range + 1:
+                        step_back_position = unit.position.towards(closest_unit.position, -1)
+                        if visual_debug:
+                            self.bot._client.debug_text_world('closeish', pos=unit.position3d, size=font_size)
+                        await self.bot.do(unit.move(step_back_position))
+                    else:
+                        if visual_debug:
+                            self.bot._client.debug_text_world('ideal', pos=unit.position3d, size=font_size)
+                        await self.bot.do(unit.attack(closest_unit))
             else:  # We are in their range but we can out range them
                 # if unit.weapon_cooldown == 0:  # shoot first
                 #     await self.bot.do(unit.attack(closest_unit))

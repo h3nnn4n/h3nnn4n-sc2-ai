@@ -33,11 +33,14 @@ FIXME
  - Not expanding (Or taking forever)
  - Fix one forge taking 2 upgrades while one is idle
  - Fix expanding blocking other things when it could not
+ - Fix twilight council sometimes (or all) not being built when 3gate blink stalker all in
 
 WIP:
  - Buildings controllers should have no strategic logic inside
  - Add a blinkstalker all in
  - Blink back Stalkers
+ - Stalker micro
+ - Improve stalker army control
 
 DONE:
  - Have no (or as little as possible) logic on TapiocaBot.py, everything should be in its own controller

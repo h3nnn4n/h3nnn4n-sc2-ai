@@ -68,8 +68,6 @@ class TapiocaBot(sc2.BotAI):
 
         self.coordinator.on_start()
 
-        # self._client.game_step = 2
-
     async def on_step(self, iteration):
         sys.stdout.flush()
 

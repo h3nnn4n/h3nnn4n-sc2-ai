@@ -40,7 +40,7 @@ difficulties = [
 
 selected_map = sample(maps, k=1)[0]
 race = sample(races, k=1)[0]
-difficulty = difficulties[5]
+difficulty = difficulties[6]
 
 
 if __name__ == '__main__':

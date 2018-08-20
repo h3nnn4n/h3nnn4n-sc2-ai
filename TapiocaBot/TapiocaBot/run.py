@@ -1,5 +1,7 @@
 # pylint: disable=C0301,E1102
 
+from patch_path import patch_path  # Use local version
+patch_path()
 import sys
 import sc2
 from sc2 import Race, Difficulty
@@ -38,9 +40,9 @@ difficulties = [
     Difficulty.CheatInsane
 ]
 
-selected_map = sample(maps, k=1)[0]
-race = sample(races, k=1)[0]
-difficulty = difficulties[6]
+selected_map = 'StalkerVsSlowLings'
+race = Race.Zerg
+difficulty = Difficulty.VeryHard
 
 
 if __name__ == '__main__':

@@ -1,0 +1,3 @@
+[submodule "TapiocaBot/TapiocaBot/python-sc2-external"]
+	path = TapiocaBot/TapiocaBot/python-sc2-external
+	url = https://github.com/h3nnn4n/python-sc2

@@ -60,9 +60,6 @@ class TapiocaBot(sc2.BotAI):
     def on_start(self):
         self.army_controller.init()
 
-        self.event_manager.add_event(self.worker_controller.step, 0.5)
-        self.event_manager.add_event(self.building_controller.update_nexus_list, 2.5)
-        self.event_manager.add_event(self.build_order_controller.step, 0.5)
         self.event_manager.add_event(self.army_controller.step, 0.1, jitter=0)
         self.event_manager.add_event(self.coordinator.step, 1)
 
@@ -86,8 +83,6 @@ class TapiocaBot(sc2.BotAI):
             await event()
 
         await self.debug()
-
-        await self.execute_order_queue()
 
     async def do(self, action):
         self.order_queue.append(action)
@@ -143,7 +138,7 @@ class TapiocaBot(sc2.BotAI):
 
         # 3D text
 
-        debug_army_state = False
+        debug_army_state = True
 
         if debug_army_state:
             for tag in self.army_controller.soldiers:
@@ -154,7 +149,7 @@ class TapiocaBot(sc2.BotAI):
 
         # Spheres
 
-        debug_army_groups = False
+        debug_army_groups = True
 
         if debug_army_groups:
             leader_tag = self.army_controller.leader
@@ -186,7 +181,7 @@ class TapiocaBot(sc2.BotAI):
                             self._client.debug_line_out(leader_unit, soldier_unit, color=(0, 255, 255))
 
         # Attack Lines
-        debug_army_attack = False
+        debug_army_attack = True
 
         if debug_army_attack:
             if self.army_controller.army_size() > 0:

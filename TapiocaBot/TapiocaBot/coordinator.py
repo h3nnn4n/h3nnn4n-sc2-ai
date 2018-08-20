@@ -115,7 +115,7 @@ class Coordinator:
         self.bot.upgrades_controller.enable_twilight = True
         self.bot.upgrades_controller.twilight_council_research_priority.append('blink')
 
-        self.bot.army_controller.minimum_army_size = 4  # 10
+        self.bot.army_controller.minimum_army_size = 1
         self.bot.army_controller.units_available_for_attack = {
             UnitTypeId.STALKER: 'STALKER'
         }

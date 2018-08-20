@@ -118,7 +118,7 @@ class ArmyController:
         # leader_tag, leader_unit = self.get_updated_leader()
 
         needs_to_defend = self.needs_to_defend()
-        send_attack = self.can_attack()
+        # send_attack = self.can_attack()
 
         for soldier_tag in self.soldiers:
             soldier_unit = self.bot.units.find_by_tag(soldier_tag)
@@ -132,17 +132,21 @@ class ArmyController:
                     await self.send_defense(soldier_tag)
 
                 if info['state'] == 'new':
-                    await self.move_to_center(soldier_tag)
+                    self.soldiers[soldier_tag]['state'] = 'attacking'
+                    # await self.move_to_center(soldier_tag)
                 elif info['state'] == 'moving_to_center':
-                    await self.moving_to_center(soldier_tag)
+                    self.soldiers[soldier_tag]['state'] = 'attacking'
+                    # await self.moving_to_center(soldier_tag)
                 elif info['state'] == 'waiting_at_center':
-                    if send_attack:
-                        await self.send_attack(soldier_tag)
-                    await self.waiting_at_center(soldier_tag)
+                    # if send_attack:
+                    #    await self.send_attack(soldier_tag)
+                    # await self.waiting_at_center(soldier_tag)
+                    self.soldiers[soldier_tag]['state'] = 'attacking'
                 elif info['state'] == 'attacking':
                     await self.micro_unit(soldier_tag)
                 elif info['state'] == 'defending':
-                    await self.defend(soldier_tag)
+                    # await self.defend(soldier_tag)
+                    self.soldiers[soldier_tag]['state'] = 'attacking'
 
         for tag in tags_to_delete:
             self.soldiers.pop(tag)
@@ -231,15 +235,15 @@ class ArmyController:
                 await self.bot.do(unit.attack(self.attack_target.position))
 
     async def stalker_micro(self, unit_tag):
-        # self.bot._client.game_step = 2
-        visual_debug = False
+        self.bot._client.game_step = 2
+        visual_debug = True
         font_size = 14
 
         unit = self.bot.units.find_by_tag(unit_tag)
 
         if self.bot.known_enemy_units.exclude_type(self.units_to_ignore_attacking).amount == 0:
             if unit.is_idle:
-                self.attack_target = self.get_something_to_attack()
+                self.attack_target = self.get_something_to_attack(unit_tag=unit_tag)
                 await self.bot.do(unit.attack(self.attack_target.position))
             return
 
@@ -355,7 +359,7 @@ class ArmyController:
             else:
                 await self.bot.do(unit.attack(self.defense_target.position))
 
-    def get_something_to_attack(self):
+    def get_something_to_attack(self, unit_tag=None):
         if self.bot.known_enemy_units.amount > 0:
             return self.bot.known_enemy_units.random
 
@@ -364,9 +368,19 @@ class ArmyController:
 
         if self.first_attack:
             self.first_attack = False
-            return self.bot.enemy_start_locations[0]
+            if len(self.bot.enemy_start_locations) > 0:
+                return self.bot.enemy_start_locations[0]
+            else:
+                unit = self.bot.units.find_by_tag(unit_tag)
+                position = unit.position.random_on_distance(50)
+                return position
 
-        return random.sample(list(self.bot.expansion_locations), k=1)[0]
+        if len(self.bot.expansion_locations) > 0:
+            return random.sample(list(self.bot.expansion_locations), k=1)[0]
+
+        unit = self.bot.units.find_by_tag(unit_tag)
+        position = unit.position.random_on_distance(50)
+        return position
 
     def get_new_threat_to_defend_from(self):
         for structure_type in self.defend_around:

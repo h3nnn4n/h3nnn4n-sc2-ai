@@ -2,6 +2,8 @@ import random
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
 
+from stalker_q_learning_controller import StalkerQLearningController
+
 
 class StalkerController:
     def __init__(self, bot=None, verbose=False, unit_controller='hardcoded'):
@@ -12,6 +14,8 @@ class StalkerController:
             'hardcoded': self.hardcoded,
             'q_learning': self.q_learning,
         }
+
+        self.stalker_q_learning_controller = StalkerQLearningController(bot=self.bot, verbose=self.verbose)
 
     async def control(self, unit_tag):
         return await self.controller_map[self.unit_controller](unit_tag)
@@ -131,4 +135,6 @@ class StalkerController:
                                 self.bot._client.debug_text_world('back', pos=unit.position3d, size=font_size)
 
     async def q_learning(self, unit_tag):
-        pass
+        action = self.stalker_q_learning_controller.step(unit_tag)
+
+        await self.bot.do(action)

@@ -76,7 +76,11 @@ class ArmyController:
         self.defense_target = None
         self.first_attack = True
 
-        self.stalker_controller = StalkerController(bot=self.bot, verbose=self.verbose)
+        self.stalker_controller = StalkerController(
+            bot=self.bot,
+            verbose=self.verbose,
+            unit_controller='q_learning'
+        )
 
     def init(self):
         self.map_center = self.bot.game_info.map_center
@@ -265,14 +269,20 @@ class ArmyController:
                 return self.bot.enemy_start_locations[0]
             else:
                 unit = self.bot.units.find_by_tag(unit_tag)
-                position = unit.position.random_on_distance(50)
+                if unit is not None:
+                    position = unit.position.random_on_distance(50)
+                else:
+                    position = self.bot._game_info.map_center.random_on_distance(50)
                 return position
 
         if len(self.bot.expansion_locations) > 0:
             return random.sample(list(self.bot.expansion_locations), k=1)[0]
 
         unit = self.bot.units.find_by_tag(unit_tag)
-        position = unit.position.random_on_distance(50)
+        if unit is not None:
+            position = unit.position.random_on_distance(50)
+        else:
+            position = self.bot._game_info.map_center.random_on_distance(50)
         return position
 
     def get_new_threat_to_defend_from(self):

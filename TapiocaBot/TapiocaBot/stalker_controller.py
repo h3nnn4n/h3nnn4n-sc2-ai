@@ -135,6 +135,13 @@ class StalkerController:
                                 self.bot._client.debug_text_world('back', pos=unit.position3d, size=font_size)
 
     async def q_learning(self, unit_tag):
-        action = self.stalker_q_learning_controller.step(unit_tag)
+        unit = self.bot.units.find_by_tag(unit_tag)
+        abilities = await self.bot.get_available_abilities(unit)
+        can_blink = AbilityId.EFFECT_BLINK_STALKER in abilities
+
+        # await self.bot._client.move_camera(unit.position)  # FIXME
+        # ValueError: Protocol message RequestAction has no "action" field.
+
+        action = self.stalker_q_learning_controller.step(unit_tag, can_blink=can_blink)
 
         await self.bot.do(action)

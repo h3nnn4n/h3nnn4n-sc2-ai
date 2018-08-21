@@ -93,7 +93,7 @@ class StalkerQLearningController:
         state = self.extract_state(unit_tag, can_blink=can_blink)
         action, action_name = self.choose_action(unit_tag, state)
 
-        print(state)
+        print(state, action_name)
         # reward = self.get_reward(unit_tag, self.state)
         # print(action, action_name)
 
@@ -222,13 +222,15 @@ class StalkerQLearningController:
             max(self.q_table[state].keys(), key=(lambda k: self.q_table[state][k]))
         ]
 
-        action = random.choice(
+        action_name = random.choice(
             [
                 action for action, reward in self.q_table[state].items() if reward == max_q
             ]
-        )(unit_tag)
+        )
 
-        return action
+        action = self.actions[action_name](unit_tag)
+
+        return action, action_name
 
     def action_walk_back(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)

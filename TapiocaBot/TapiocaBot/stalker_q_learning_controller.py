@@ -135,13 +135,13 @@ class StalkerQLearningController:
 
         in_enemy_range = False
         distance_to_enemy = 0
-        enemy_health_percentage = 0
-        enemy_range = 0
+        # enemy_health_percentage = 0
+        # enemy_range = 0
         enemy_in_range = False
         enemy_in_sight = False
-        self_health_percentage = 0
-        self_shield_percentage = 0
-        self_range = 0
+        # self_health_percentage = 0
+        # self_shield_percentage = 0
+        # self_range = 0
         self_can_shoot = 0
         self_can_blink = 0
 
@@ -153,19 +153,19 @@ class StalkerQLearningController:
                 unit.position.distance_to(closest_unit) -
                 unit.radius / 2 - closest_unit.radius / 2
             )
-            enemy_health_percentage = (
-                closest_unit.health + closest_unit.shield
-            ) / (
-                closest_unit.health_max + closest_unit.shield_max
-            )
-            enemy_range = closest_unit.ground_range
+            # enemy_health_percentage = (
+            #     closest_unit.health + closest_unit.shield
+            # ) / (
+            #     closest_unit.health_max + closest_unit.shield_max
+            # )
+            # enemy_range = closest_unit.ground_range
             in_enemy_range = distance_to_enemy <= closest_unit.ground_range
             enemy_in_range = distance_to_enemy <= unit.ground_range
             enemy_in_sight = distance_to_enemy <= unit.sight_range
 
-        self_health_percentage = unit.health_percentage
-        self_shield_percentage = unit.shield_percentage
-        self_range = unit.ground_range
+        # self_health_percentage = unit.health_percentage
+        # self_shield_percentage = unit.shield_percentage
+        # self_range = unit.ground_range
         self_can_shoot = unit.weapon_cooldown == 0
         self_can_blink = can_blink
 

@@ -69,8 +69,6 @@ class TapiocaBot(sc2.BotAI):
         self.coordinator.on_start()
 
     async def on_step(self, iteration):
-        sys.stdout.flush()
-
         if iteration == 0:  # Do nothing on the first iteration to avoid
                             # everything being done at the same time
             if self.verbose:
@@ -88,6 +86,9 @@ class TapiocaBot(sc2.BotAI):
         await self.debug()
 
         await self.execute_order_queue()
+
+        if self.verbose:
+            sys.stdout.flush()
 
     async def do(self, action):
         self.order_queue.append(action)

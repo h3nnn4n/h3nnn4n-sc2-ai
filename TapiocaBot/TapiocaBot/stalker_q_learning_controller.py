@@ -1,20 +1,32 @@
 import random
+import math
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
 
 '''
     Feature vector [
+        in_enemy_range: bool  2 possible values
         distance_to_enemy: [0 .. self_sight_range]  10 possible values
         enemy_health_percentage: [0 .. 100, steps of 10]  11 possible values
         enemy_range: int  about 3 possible values
+        enemy_in_range: bool  2 possible values
+        enemy_in_sight: bool  2 possible values
         self_health_percentage: [0 .. 100, steps of 10]  11 possible values
         self_shield_percentage: [0 .. 100, steps of 10]  11 possible values
         self_range: int  1 possible value
-        self_on_cooldown: bool  2 possible values
-        self_blink_on_cooldown: bool  2 possible values
+        self_can_shoot: bool  2 possible values
+        self_can_blink: bool  2 possible values
     ]
 
-    Feature space sice = 10 * 11 * 3 * 11 * 11 * 1 * 2 * 2 = 159720
+    Using: [
+        in_enemy_range
+        enemy_in_range
+        enemy_in_sight
+        self_can_shoot
+        self_can_blink
+    ]
+
+    Feature space size = 2 * 2 * 2 * 2 * 2= 32  ;)
 
     Action vector [
         attack_closest_enemy
@@ -73,19 +85,23 @@ class StalkerQLearningController:
 
     def step(self, unit_tag, can_blink=False):
         # update reward
-        if self.previous_state is not None:
-            reward = self.get_reward(unit_tag, self.state)
-            self.learn(self.previous_state, self.last_action, reward, self.state)
+        # if self.previous_state is not None:
+        #     reward = self.get_reward(unit_tag, self.state)
+        #     self.learn(self.previous_state, self.last_action, reward, self.state)
 
         # get next action
         state = self.extract_state(unit_tag, can_blink=can_blink)
         action, action_name = self.choose_action(unit_tag, state)
 
-        self.previous_state = self.state
-        self.state = state
-        self.last_action = action
+        print(state)
+        # reward = self.get_reward(unit_tag, self.state)
+        # print(action, action_name)
 
-        # execute the action
+        # self.previous_state = self.state
+        # self.state = state
+        # self.last_action = action
+
+        # execute the action0
         return action
 
     def get_reward(self, unit_tag, state):
@@ -99,7 +115,67 @@ class StalkerQLearningController:
         return self.reward['damage_taken'] * self.reward_weights['damage_taken']
 
     def extract_state(self, unit_tag, can_blink=False):
-        state = []
+        '''
+        Feature vector [
+            in_enemy_range: bool  2 possible values
+            distance_to_enemy: [0 .. self_sight_range]  10 possible values
+            enemy_health_percentage: [0 .. 100, steps of 10]  11 possible values
+            enemy_range: int  about 3 possible values
+            enemy_in_range: bool  2 possible values
+            enemy_in_sight: bool  2 possible values
+            self_health_percentage: [0 .. 100, steps of 10]  11 possible values
+            self_shield_percentage: [0 .. 100, steps of 10]  11 possible values
+            self_range: int  1 possible value
+            self_can_shoot: bool  2 possible values
+            self_can_blink: bool  2 possible values
+        ]
+        '''
+
+        # TODO: Add booleans to turn on and off the features
+
+        in_enemy_range = False
+        distance_to_enemy = 0
+        enemy_health_percentage = 0
+        enemy_range = 0
+        enemy_in_range = False
+        enemy_in_sight = False
+        self_health_percentage = 0
+        self_shield_percentage = 0
+        self_range = 0
+        self_can_shoot = 0
+        self_can_blink = 0
+
+        unit = self.bot.units.find_by_tag(unit_tag)
+        closest_unit = self.get_closest_enemy_unit(unit_tag)
+
+        if closest_unit is not None:
+            distance_to_enemy = (
+                unit.position.distance_to(closest_unit) -
+                unit.radius / 2 - closest_unit.radius / 2
+            )
+            enemy_health_percentage = (
+                closest_unit.health + closest_unit.shield
+            ) / (
+                closest_unit.health_max + closest_unit.shield_max
+            )
+            enemy_range = closest_unit.ground_range
+            in_enemy_range = distance_to_enemy <= closest_unit.ground_range
+            enemy_in_range = distance_to_enemy <= unit.ground_range
+            enemy_in_sight = distance_to_enemy <= unit.sight_range
+
+        self_health_percentage = unit.health_percentage
+        self_shield_percentage = unit.shield_percentage
+        self_range = unit.ground_range
+        self_can_shoot = unit.weapon_cooldown == 0
+        self_can_blink = can_blink
+
+        state = [
+            in_enemy_range,
+            enemy_in_range,
+            enemy_in_sight,
+            self_can_shoot,
+            self_can_blink
+        ]
 
         return tuple(state)
 
@@ -137,7 +213,7 @@ class StalkerQLearningController:
 
     def get_random_action(self, unit_tag):
         action_name = random.choice(list(self.actions.keys()))
-        action = self.actions[action_name]
+        action = self.actions[action_name](unit_tag)
 
         return action, action_name
 

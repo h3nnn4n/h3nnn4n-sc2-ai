@@ -47,44 +47,110 @@ class StalkerQLearningController:
 
         self.q_table = {}
 
-        self.reward = {}
+        self.reward = {
+            'enemy_damage': {},
+            'damage_taken': 0,
+            'units_killed': {}
+        }
+
+        self.reward_weights = {
+            'enemy_damage': 1.0,
+            'damage_taken': -1.0,
+            'units_killed': 10,
+            'death': -100
+        }
+
+        self.unit_type_reward_height = {
+            'zergling': 2
+        }
+
+        self.previous_state = None
+        self.state = None
+        self.last_action = None
 
         self.font_size = 14
         self.visual_debug = True
 
     def step(self, unit_tag, can_blink=False):
-        state = self.extract_state(unit_tag, can_blink=can_blink)
-        action = self.choose_action(state, unit_tag)
+        # update reward
+        if self.previous_state is not None:
+            reward = self.get_reward(unit_tag, self.state)
+            self.learn(self.previous_state, self.last_action, reward, self.state)
 
+        # get next action
+        state = self.extract_state(unit_tag, can_blink=can_blink)
+        action, action_name = self.choose_action(unit_tag, state)
+
+        self.previous_state = self.state
+        self.state = state
+        self.last_action = action
+
+        # execute the action
         return action
+
+    def get_reward(self, unit_tag, state):
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        self.reward['damage_taken'] = (
+            unit.health_max - unit.health +
+            unit.shield - unit.shield_max
+        )
+
+        return self.reward['damage_taken'] * self.reward_weights['damage_taken']
 
     def extract_state(self, unit_tag, can_blink=False):
         state = []
 
         return tuple(state)
 
-    def choose_action(self, state, unit_tag):
+    def choose_action(self, unit_tag, state):
         self.check_state_exist(state)
 
         if random.random() <= self.epsilon:
-            action = self.get_random_action(unit_tag)
+            result = self.get_random_action(unit_tag)
         else:
-            action = None
+            result = self.get_best_action(unit_tag, state)
 
-        return action
+        return result
 
-    def learn(self, s, a, r, s_):
-        pass
+    def learn(self, state, action, reward, state_):
+        self.check_state_exist(state_)
+
+        max_q = self.q_table[state][
+            max(self.q_table[state].keys(), key=(lambda k: self.q_table[state][k]))
+        ]
+
+        self.q_table[state][action] += self.alpha * (
+            reward +
+            self.gamma * max_q -
+            self.q_table[state][action]
+        )
 
     def check_state_exist(self, state):
         if state not in self.q_table.keys():
-            self.q_table[state] = zip(
-                self.actions,
-                [0 for _ in range(len(self.actions))]
-            )
+            self.q_table[state] = {
+                key: value for (key, value) in zip(
+                    self.actions,
+                    [0 for _ in range(len(self.actions))]
+                )
+            }
 
     def get_random_action(self, unit_tag):
-        action = random.choice(list(self.actions.values()))(unit_tag)
+        action_name = random.choice(list(self.actions.keys()))
+        action = self.actions[action_name]
+
+        return action, action_name
+
+    def get_best_action(self, unit_tag, state):
+        max_q = self.q_table[state][
+            max(self.q_table[state].keys(), key=(lambda k: self.q_table[state][k]))
+        ]
+
+        action = random.choice(
+            [
+                action for action, reward in self.q_table[state].items() if reward == max_q
+            ]
+        )(unit_tag)
 
         return action
 
@@ -103,6 +169,8 @@ class StalkerQLearningController:
         return unit.move(unit)  # Idle action
 
     def action_walk_random(self, unit_tag):
+        # Improve random walk
+        # a bad one will get the agent stuck and losing lots of reward points
         unit = self.bot.units.find_by_tag(unit_tag)
 
         if self.visual_debug:

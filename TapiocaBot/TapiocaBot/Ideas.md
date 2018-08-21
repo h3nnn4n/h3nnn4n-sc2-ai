@@ -25,6 +25,9 @@
 - Make the code more generic (to allow reuse for other races)
 - Oracle harass
 - Allow 3gate stalker all in to expand and go on with the game if the presure wont break in
+- Scout for proxy pylons
+- Scout for Dark Templas and adapt
+- Send 2 probes to attack enemy workers that get too close to our pylons/nexus
 
 ## FIXME
 
@@ -40,6 +43,7 @@
 - Move stalkers out of the way then others are trying to blink back
 - Buildings controllers should have no strategic logic inside
 - Improve stalker army control
+- Enable stalker micro as soon as it is warped in
 
 ### WIP
 

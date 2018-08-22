@@ -40,7 +40,7 @@ difficulties = [
     Difficulty.CheatInsane
 ]
 
-selected_map = 'StalkerVsRoaches'
+selected_map = 'StalkerVsRoaches Narrow'
 race = Race.Zerg
 difficulty = Difficulty.VeryHard
 

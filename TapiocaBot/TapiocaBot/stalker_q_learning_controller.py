@@ -2,6 +2,7 @@ import random
 import math
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
+from sc2.position import Point2
 
 '''
     Feature vector [
@@ -57,12 +58,13 @@ class StalkerQLearningController:
             'blink_back': self.action_blink_back,
             'walk_back': self.action_walk_back,
             'attack_closest_enemy': self.action_attack_closest_enemy,
-            'walk_random': self.action_walk_random
+            # 'walk_random': self.action_walk_random,
+            'walk_left': self.action_walk_left
         }
 
-        self.alpha = 0.1
-        self.gamma = 0.9
-        self.epsilon = 0.1
+        self.alpha = 0.6
+        self.gamma = 0.6
+        self.epsilon = 0.15
 
         self.q_table = {}
 
@@ -264,12 +266,17 @@ class StalkerQLearningController:
 
     def check_state_exist(self, state):
         if state not in self.q_table.keys():
+            enemy_in_sight = state[2]
+
             self.q_table[state] = {
                 key: value for (key, value) in zip(
                     self.actions,
                     [0 for _ in range(len(self.actions))]
                 )
             }
+
+            if not enemy_in_sight:
+                self.q_table[state].pop('attack_closest_enemy')
 
     def get_random_action(self, unit_tag):
         action_name = random.choice(list(self.actions.keys()))
@@ -333,6 +340,22 @@ class StalkerQLearningController:
         # random_position = map_center.random_on_distance(min(map_size))
 
         # return unit.move(random_position)
+    def action_walk_left(self, unit_tag):
+        # Improve random walk
+        # a bad one will get the agent stuck and losing lots of reward points
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        if self.visual_debug:
+            self.bot._client.debug_text_world(
+                'walk_left',
+                pos=unit.position3d,
+                size=self.font_size
+            )
+
+        unit_position = unit.position.to2
+
+        left_position = Point2((unit_position.x - 10, unit_position.y))
+        return unit.move(left_position)
 
     def action_blink_back(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)

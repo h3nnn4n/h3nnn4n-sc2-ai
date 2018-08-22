@@ -98,8 +98,8 @@ class ArmyController:
             for unit in self.bot.units(unit_type).idle:
                 if unit.tag not in self.soldiers:
                     self.add(unit.tag, {'state': 'new'})
-                    if self.verbose:
-                        print('   ->  Found new unit')
+                    # if self.verbose:
+                    #     print('   ->  Found new unit')
 
     def add(self, unit_tag, options={}):
         self.soldiers[unit_tag] = options
@@ -112,8 +112,8 @@ class ArmyController:
             if self.leader not in self.soldiers:
                 self.leader = next(iter(self.soldiers))
 
-                if self.verbose:
-                    print('%6.2f leader died, found new one' % (self.bot.time))
+                # if self.verbose:
+                #     print('%6.2f leader died, found new one' % (self.bot.time))
         else:
             self.leader = None
 

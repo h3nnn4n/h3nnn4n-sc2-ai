@@ -28,6 +28,7 @@
 - Scout for proxy pylons
 - Scout for Dark Templas and adapt
 - Send 2 probes to attack enemy workers that get too close to our pylons/nexus
+- Improve micro agaisnt static defense
 
 ## FIXME
 
@@ -48,6 +49,9 @@
 ### WIP
 
 - Q Learning for stalker micro
+- Unit tests for q_learning core functions
+- Q Learning should learn how to kill without dying and not how to flee
+- Fix debugger controller
 
 #### DONE
 

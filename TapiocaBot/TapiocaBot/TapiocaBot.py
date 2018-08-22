@@ -23,6 +23,7 @@ from worker_controller import WorkerController
 from army_controller import ArmyController
 
 from coordinator import Coordinator
+from debug_controller import DebugController
 
 
 class TapiocaBot(sc2.BotAI):
@@ -30,6 +31,7 @@ class TapiocaBot(sc2.BotAI):
         self.verbose = verbose
         self.visual_debug = visual_debug
 
+        self.debug_controller = DebugController(bot=self, verbose=self.verbose)
         self.army_controller = ArmyController(bot=self, verbose=self.verbose)
         self.order_queue = []
 
@@ -42,6 +44,8 @@ class TapiocaBot(sc2.BotAI):
         await self.army_controller.step()
         await self.execute_order_queue()
         await self._client.send_debug()
+
+        await self.debug_controller.send()
 
     async def do(self, action):
         self.order_queue.append(action)

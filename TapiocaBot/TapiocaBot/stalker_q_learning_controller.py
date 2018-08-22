@@ -34,6 +34,13 @@ from sc2.ids.ability_id import AbilityId
         blink_back
         walk_random
     ]
+
+    Rewards: [
+        damage_taken
+        damage_inflicted
+        units_killed
+        death
+    ]
 '''
 
 # TODO: Next step -> rewards
@@ -55,51 +62,78 @@ class StalkerQLearningController:
 
         self.alpha = 0.01
         self.gamma = 0.9
-        self.epsilon = 1.0
+        self.epsilon = 0.05
 
         self.q_table = {}
 
-        self.reward = {
-            'enemy_damage': {},
-            'damage_taken': 0,
-            'units_killed': {}
-        }
+        self.reward = {}
 
         self.reward_weights = {
             'enemy_damage': 1.0,
-            'damage_taken': -1.0,
+            'damage_taken': -2.5,
             'units_killed': 10,
-            'death': -100
+            'death': -100,
+            'step': -0.025
         }
 
         self.unit_type_reward_height = {
-            'zergling': 2
+            'zergling': 2,
+            'roach': 5
         }
 
+        self.step_count = 0
         self.previous_state = None
         self.state = None
         self.last_action = None
+        self.last_reward = 0
 
         self.font_size = 14
         self.visual_debug = True
 
+        self.current_unit_tag = None
+
+        self.reset_reward()
+
+    def reset_reward(self):
+        self.reward = {
+            'enemy_damage': {},
+            'damage_taken': 0,
+            'units_killed': {},
+            'step': 0
+        }
+
+        self.step_count = 0
+
     def step(self, unit_tag, can_blink=False):
+        if self.current_unit_tag is None:
+            self.current_unit_tag = unit_tag
+        elif self.current_unit_tag != unit_tag:
+            print('reset reward %f' % self.last_reward)
+            self.current_unit_tag = unit_tag
+            self.reset_reward()
+
+        self.step_count += 1
         # update reward
-        # if self.previous_state is not None:
-        #     reward = self.get_reward(unit_tag, self.state)
-        #     self.learn(self.previous_state, self.last_action, reward, self.state)
+        if self.previous_state is not None:
+            reward = self.get_reward(unit_tag, self.state)
+            self.learn(self.previous_state, self.last_action, reward, self.state)
 
         # get next action
         state = self.extract_state(unit_tag, can_blink=can_blink)
         action, action_name = self.choose_action(unit_tag, state)
 
-        print(state, action_name)
-        # reward = self.get_reward(unit_tag, self.state)
-        # print(action, action_name)
+        reward = self.get_reward(unit_tag, state)
+        # print(state, reward, action_name)
 
-        # self.previous_state = self.state
-        # self.state = state
-        # self.last_action = action
+        self.previous_state = self.state
+        self.state = state
+        self.last_action = action_name
+        self.last_reward = reward
+
+        self.bot.debug_controller.debug_text_screen('%s' % str(self.state))
+        self.bot.debug_controller.debug_text_screen(' steps: %8d' % self.step_count)
+        self.bot.debug_controller.debug_text_screen('reward: %8.3f' % self.last_reward)
+        self.bot.debug_controller.debug_text_screen('action: %s' % self.last_action)
 
         # execute the action0
         return action
@@ -112,7 +146,24 @@ class StalkerQLearningController:
             unit.shield - unit.shield_max
         )
 
-        return self.reward['damage_taken'] * self.reward_weights['damage_taken']
+        self.reward['step'] = self.step_count
+
+        closest_unit = self.get_closest_enemy_unit(unit_tag)
+
+        if closest_unit is not None:
+            if closest_unit.tag not in self.reward['enemy_damage'].keys():
+                self.reward['enemy_damage'][closest_unit.tag] = (
+                    closest_unit.health_max - closest_unit.health +
+                    closest_unit.shield - closest_unit.shield_max
+                )
+
+        enemy_damage = 0 + sum(self.reward['enemy_damage'].values())
+
+        return (
+            self.reward['damage_taken'] * self.reward_weights['damage_taken'] +
+            enemy_damage * self.reward_weights['enemy_damage'] +
+            self.reward['step'] * self.reward_weights['step']
+        )
 
     def extract_state(self, unit_tag, can_blink=False):
         '''

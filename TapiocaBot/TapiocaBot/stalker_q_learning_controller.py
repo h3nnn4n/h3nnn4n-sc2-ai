@@ -60,20 +60,20 @@ class StalkerQLearningController:
             'walk_random': self.action_walk_random
         }
 
-        self.alpha = 0.01
+        self.alpha = 0.1
         self.gamma = 0.9
-        self.epsilon = 0.05
+        self.epsilon = 0.1
 
         self.q_table = {}
 
         self.reward = {}
 
         self.reward_weights = {
-            'enemy_damage': 1.0,
+            'enemy_damage': 5.0,
             'damage_taken': -2.5,
-            'units_killed': 10,
-            'death': -100,
-            'step': -0.025
+            'units_killed': 1000,
+            'death': -1000,
+            'step': -0.0
         }
 
         self.unit_type_reward_height = {
@@ -86,6 +86,8 @@ class StalkerQLearningController:
         self.state = None
         self.last_action = None
         self.last_reward = 0
+        self.killed_value_units = 0
+        self.died_last_round = False
 
         self.font_size = 14
         self.visual_debug = True
@@ -98,8 +100,9 @@ class StalkerQLearningController:
         self.reward = {
             'enemy_damage': {},
             'damage_taken': 0,
-            'units_killed': {},
-            'step': 0
+            'units_killed': 0,
+            'step': 0,
+            'death': 0
         }
 
         self.step_count = 0
@@ -108,15 +111,19 @@ class StalkerQLearningController:
         if self.current_unit_tag is None:
             self.current_unit_tag = unit_tag
         elif self.current_unit_tag != unit_tag:
-            print('reset reward %f' % self.last_reward)
             self.current_unit_tag = unit_tag
+            self.died_last_round = True
+            self.reward['death'] += 1
+        elif self.died_last_round:
+            self.died_last_round = False
+            print('reset reward %f' % self.last_reward)
             self.reset_reward()
 
         self.step_count += 1
         # update reward
         if self.previous_state is not None:
             reward = self.get_reward(unit_tag, self.state)
-            self.learn(self.previous_state, self.last_action, reward, self.state)
+            self.learn(self.previous_state, self.last_action, reward - self.last_reward, self.state)
 
         # get next action
         state = self.extract_state(unit_tag, can_blink=can_blink)
@@ -162,7 +169,9 @@ class StalkerQLearningController:
         return (
             self.reward['damage_taken'] * self.reward_weights['damage_taken'] +
             enemy_damage * self.reward_weights['enemy_damage'] +
-            self.reward['step'] * self.reward_weights['step']
+            self.reward['step'] * self.reward_weights['step'] +
+            self.reward['units_killed'] * self.reward_weights['units_killed'] +
+            self.reward['death'] * self.reward_weights['death']
         )
 
     def extract_state(self, unit_tag, can_blink=False):
@@ -378,3 +387,9 @@ class StalkerQLearningController:
             closest_unit = None
 
         return closest_unit
+
+    def update_units_killed(self):
+        if self.bot.state.score.killed_value_units != self.killed_value_units:
+            self.killed_value_units = self.bot.state.score.killed_value_units
+
+            self.reward['units_killed'] += 1

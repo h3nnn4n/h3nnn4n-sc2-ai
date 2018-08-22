@@ -287,12 +287,19 @@ class StalkerQLearningController:
         unit = self.bot.units.find_by_tag(unit_tag)
 
         if self.visual_debug:
-            self.bot._client.debug_text_world('walk_back', pos=unit.position3d, size=self.font_size)
+            self.bot._client.debug_text_world(
+                'walk_back',
+                pos=unit.position3d,
+                size=self.font_size
+            )
 
         closest_unit = self.get_closest_enemy_unit(unit_tag)
 
         if closest_unit is not None:
-            step_back_position = unit.position.towards(closest_unit.position, -2)
+            step_back_position = unit.position.towards(
+                closest_unit.position,
+                -2
+            )
             return unit.move(step_back_position)
 
         return unit.move(unit)  # Idle action
@@ -303,7 +310,11 @@ class StalkerQLearningController:
         unit = self.bot.units.find_by_tag(unit_tag)
 
         if self.visual_debug:
-            self.bot._client.debug_text_world('walk_random', pos=unit.position3d, size=self.font_size)
+            self.bot._client.debug_text_world(
+                'walk_random',
+                pos=unit.position3d,
+                size=self.font_size
+            )
 
         random_position = unit.position.random_on_distance(10)
         return unit.move(random_position)
@@ -318,12 +329,19 @@ class StalkerQLearningController:
         unit = self.bot.units.find_by_tag(unit_tag)
 
         if self.visual_debug:
-            self.bot._client.debug_text_world('blink', pos=unit.position3d, size=self.font_size)
+            self.bot._client.debug_text_world(
+                'blink',
+                pos=unit.position3d,
+                size=self.font_size
+            )
 
         closest_unit = self.get_closest_enemy_unit(unit_tag)
 
         if closest_unit is not None:
-            blink_back_position = unit.position.towards(closest_unit.position, -8)
+            blink_back_position = unit.position.towards(
+                closest_unit.position,
+                -8
+            )
             return unit(AbilityId.EFFECT_BLINK_STALKER, blink_back_position)
 
         return unit.move(unit)  # Idle action
@@ -332,7 +350,11 @@ class StalkerQLearningController:
         unit = self.bot.units.find_by_tag(unit_tag)
 
         if self.visual_debug:
-            self.bot._client.debug_text_world('attack', pos=unit.position3d, size=self.font_size)
+            self.bot._client.debug_text_world(
+                'attack',
+                pos=unit.position3d,
+                size=self.font_size
+            )
 
         closest_unit = self.get_closest_enemy_unit(unit_tag)
 
@@ -344,7 +366,8 @@ class StalkerQLearningController:
     def get_closest_enemy_unit(self, unit_tag):
         unit = self.bot.units.find_by_tag(unit_tag)
 
-        all_enemy_units = self.bot.known_enemy_units.exclude_type(self.bot.army_controller.units_to_ignore_attacking)
+        all_enemy_units = self.bot.known_enemy_units.exclude_type(
+            self.bot.army_controller.units_to_ignore_attacking)
         enemy_units = all_enemy_units.not_structure
 
         if enemy_units.exists:

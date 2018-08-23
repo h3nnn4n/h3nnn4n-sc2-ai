@@ -55,7 +55,7 @@ class StalkerQLearningController:
         self.feature = []
 
         self.actions = {
-            'blink_back': self.action_blink_back,
+            # 'blink_back': self.action_blink_back,
             'walk_back': self.action_walk_back,
             'attack_closest_enemy': self.action_attack_closest_enemy,
             # 'walk_random': self.action_walk_random,
@@ -75,7 +75,8 @@ class StalkerQLearningController:
             'damage_taken': -2.5,
             'units_killed': 1000,
             'death': -1000,
-            'step': -0.0
+            'step': -0.0,
+            'idle': -10.0,
         }
 
         self.unit_type_reward_height = {
@@ -84,6 +85,7 @@ class StalkerQLearningController:
         }
 
         self.step_count = 0
+        self.idle_count = 0
         self.previous_state = None
         self.state = None
         self.last_action = None
@@ -104,12 +106,14 @@ class StalkerQLearningController:
             'damage_taken': 0,
             'units_killed': 0,
             'step': 0,
-            'death': 0
+            'death': 0,
+            'idle': 0
         }
 
+        self.idle_count = 0
         self.step_count = 0
 
-    def step(self, unit_tag, can_blink=False):
+    async def step(self, unit_tag, can_blink=False):
         if self.current_unit_tag is None:
             self.current_unit_tag = unit_tag
         elif self.current_unit_tag != unit_tag:
@@ -122,6 +126,12 @@ class StalkerQLearningController:
             self.reset_reward()
 
         self.step_count += 1
+        self.idle_count += 1 if self.bot.units.find_by_tag(unit_tag).is_idle else 0
+
+        if self.idle_count > 100:
+            await self.bot.debug_controller.debug_destroy_unit(unit_tag)
+        await self.bot.debug_controller.debug_destroy_unit(unit_tag)
+
         # update reward
         if self.previous_state is not None:
             reward = self.get_reward(unit_tag, self.state)
@@ -132,17 +142,21 @@ class StalkerQLearningController:
         action, action_name = self.choose_action(unit_tag, state)
 
         reward = self.get_reward(unit_tag, state)
-        # print(state, reward, action_name)
+
+        self.bot.debug_controller.debug_text_screen('%s' % str(self.previous_state))
+        self.bot.debug_controller.debug_text_screen('%s' % str(self.state))
+        self.bot.debug_controller.debug_text_screen('       steps: %8d' % self.step_count)
+        self.bot.debug_controller.debug_text_screen('  steps_idle: %8d' % self.idle_count)
+        self.bot.debug_controller.debug_text_screen('total_reward: %8.3f' % self.last_reward)
+        self.bot.debug_controller.debug_text_screen('      reward: %8.3f' % (reward - self.last_reward))
+        self.bot.debug_controller.debug_text_screen('      action: %s' % self.last_action)
 
         self.previous_state = self.state
         self.state = state
         self.last_action = action_name
         self.last_reward = reward
 
-        self.bot.debug_controller.debug_text_screen('%s' % str(self.state))
-        self.bot.debug_controller.debug_text_screen(' steps: %8d' % self.step_count)
-        self.bot.debug_controller.debug_text_screen('reward: %8.3f' % self.last_reward)
-        self.bot.debug_controller.debug_text_screen('action: %s' % self.last_action)
+        await self.bot.debug_controller.send()
 
         # execute the action0
         return action
@@ -173,7 +187,8 @@ class StalkerQLearningController:
             enemy_damage * self.reward_weights['enemy_damage'] +
             self.reward['step'] * self.reward_weights['step'] +
             self.reward['units_killed'] * self.reward_weights['units_killed'] +
-            self.reward['death'] * self.reward_weights['death']
+            self.reward['death'] * self.reward_weights['death'] +
+            self.reward['idle'] * self.reward_weights['idle']
         )
 
     def extract_state(self, unit_tag, can_blink=False):
@@ -266,7 +281,7 @@ class StalkerQLearningController:
 
     def check_state_exist(self, state):
         if state not in self.q_table.keys():
-            enemy_in_sight = state[2]
+            # enemy_in_sight = state[2]
 
             self.q_table[state] = {
                 key: value for (key, value) in zip(
@@ -275,8 +290,8 @@ class StalkerQLearningController:
                 )
             }
 
-            if not enemy_in_sight:
-                self.q_table[state].pop('attack_closest_enemy')
+            # if not enemy_in_sight:
+            #     self.q_table[state].pop('attack_closest_enemy')
 
     def get_random_action(self, unit_tag):
         action_name = random.choice(list(self.actions.keys()))

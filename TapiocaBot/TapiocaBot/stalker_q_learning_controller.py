@@ -62,9 +62,9 @@ class StalkerQLearningController:
             'walk_left': self.action_walk_left
         }
 
-        self.alpha = 0.6
+        self.alpha = 0.2
         self.gamma = 0.6
-        self.epsilon = 0.15
+        self.epsilon = 0.05
 
         self.q_table = {}
 
@@ -75,8 +75,8 @@ class StalkerQLearningController:
             'damage_taken': -2.5,
             'units_killed': 1000,
             'death': -1000,
-            'step': -0.0,
-            'idle': -10.0,
+            'step': -0.1,
+            'idle': -50.0,
         }
 
         self.unit_type_reward_height = {
@@ -92,6 +92,12 @@ class StalkerQLearningController:
         self.last_reward = 0
         self.killed_value_units = 0
         self.died_last_round = False
+        self.total_deaths = 0
+        self.total_kills = 0
+        self.highest_reward = float('-inf')
+        self.most_kills = 0
+        self.most_damage_inflicted = 0
+        self.damage_inflicted = 0
 
         self.font_size = 14
         self.visual_debug = True
@@ -114,8 +120,12 @@ class StalkerQLearningController:
         self.step_count = 0
 
     async def step(self, unit_tag, can_blink=False):
-        if self.idle_count > 10:
-            print('rip ', unit_tag)
+        self.update_units_killed()
+        self.step_count += 1
+        self.idle_count += 1 if self.bot.units.find_by_tag(unit_tag).is_idle else 0
+
+        if self.idle_count > 100:
+            print('killSwitch triggered: ', unit_tag)
             await self.bot.debug_controller.debug_destroy_unit(unit_tag)
 
             self.current_unit_tag = unit_tag
@@ -128,13 +138,16 @@ class StalkerQLearningController:
             self.current_unit_tag = unit_tag
             self.died_last_round = True
             self.reward['death'] += 1
+            print('unit died: ', unit_tag)
         elif self.died_last_round:
+            self.total_deaths += 1
+            self.total_kills = 0
+            self.most_kills = max(self.most_kills, self.reward['units_killed'])
+            self.highest_reward = max(self.highest_reward, self.last_reward)
+            self.most_damage_inflicted = max(self.most_damage_inflicted, 0 + sum(self.reward['enemy_damage'].values()))
             self.died_last_round = False
             print('reset reward %f' % self.last_reward)
             self.reset_reward()
-
-        self.step_count += 1
-        self.idle_count += 1 if self.bot.units.find_by_tag(unit_tag).is_idle else 0
 
         # update reward
         if self.previous_state is not None:
@@ -149,11 +162,24 @@ class StalkerQLearningController:
 
         self.bot.debug_controller.debug_text_screen('%s' % str(self.previous_state))
         self.bot.debug_controller.debug_text_screen('%s' % str(self.state))
-        self.bot.debug_controller.debug_text_screen('       steps: %8d' % self.step_count)
-        self.bot.debug_controller.debug_text_screen('  steps_idle: %8d' % self.idle_count)
-        self.bot.debug_controller.debug_text_screen('total_reward: %8.3f' % self.last_reward)
-        self.bot.debug_controller.debug_text_screen('      reward: %8.3f' % (reward - self.last_reward))
-        self.bot.debug_controller.debug_text_screen('      action: %s' % self.last_action)
+        self.bot.debug_controller.debug_text_screen('')
+        self.bot.debug_controller.debug_text_screen('                steps: %8d' % self.step_count)
+        self.bot.debug_controller.debug_text_screen('           steps_idle: %8d' % self.idle_count)
+        self.bot.debug_controller.debug_text_screen('         total_reward: %8.2f' % self.last_reward)
+        self.bot.debug_controller.debug_text_screen('               reward: %8.2f' % (reward - self.last_reward))
+        self.bot.debug_controller.debug_text_screen('               action: %s' % self.last_action)
+        self.bot.debug_controller.debug_text_screen('                 idle: %s' % (
+            self.bot.units.find_by_tag(unit_tag).is_idle)
+        )
+        self.bot.debug_controller.debug_text_screen('')
+        self.bot.debug_controller.debug_text_screen('         total_deaths: %8d' % self.total_deaths)
+        self.bot.debug_controller.debug_text_screen('          total_kills: %8d' % self.total_kills)
+        self.bot.debug_controller.debug_text_screen('           most_kills: %8d' % self.most_kills)
+        self.bot.debug_controller.debug_text_screen('       highest_reward: %8.2f' % self.highest_reward)
+        self.bot.debug_controller.debug_text_screen('most_damage_inflicted: %8.2f' % self.most_damage_inflicted)
+        self.bot.debug_controller.debug_text_screen('     damage_inflicted: %8.2f' % (
+            0 + sum(self.reward['enemy_damage'].values()))
+        )
 
         self.previous_state = self.state
         self.state = state
@@ -175,16 +201,7 @@ class StalkerQLearningController:
 
         self.reward['step'] = self.step_count
 
-        closest_unit = self.get_closest_enemy_unit(unit_tag)
-
-        if closest_unit is not None:
-            if closest_unit.tag not in self.reward['enemy_damage'].keys():
-                self.reward['enemy_damage'][closest_unit.tag] = (
-                    closest_unit.health_max - closest_unit.health +
-                    closest_unit.shield - closest_unit.shield_max
-                )
-
-        enemy_damage = 0 + sum(self.reward['enemy_damage'].values())
+        enemy_damage = self.update_damage_inflicted()
 
         return (
             self.reward['damage_taken'] * self.reward_weights['damage_taken'] +
@@ -194,6 +211,15 @@ class StalkerQLearningController:
             self.reward['death'] * self.reward_weights['death'] +
             self.reward['idle'] * self.reward_weights['idle']
         )
+
+    def update_damage_inflicted(self):
+        for enemy_unit in self.bot.known_enemy_units:
+            self.reward['enemy_damage'][enemy_unit.tag] = (
+                (enemy_unit.health_max - enemy_unit.health) +
+                (enemy_unit.shield_max - enemy_unit.shield)
+            )
+
+        return 0 + sum(self.reward['enemy_damage'].values())
 
     def extract_state(self, unit_tag, can_blink=False):
         '''
@@ -435,3 +461,4 @@ class StalkerQLearningController:
             self.killed_value_units = self.bot.state.score.killed_value_units
 
             self.reward['units_killed'] += 1
+            self.total_kills += 1

@@ -37,6 +37,7 @@ class TapiocaBot(sc2.BotAI):
 
     def on_start(self):
         self.army_controller.init()
+        # self._client.game_step = 2
 
     async def on_step(self, iteration):
         if self.verbose:

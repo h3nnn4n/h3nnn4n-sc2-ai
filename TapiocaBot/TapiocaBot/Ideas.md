@@ -25,6 +25,10 @@
 - Make the code more generic (to allow reuse for other races)
 - Oracle harass
 - Allow 3gate stalker all in to expand and go on with the game if the presure wont break in
+- Scout for proxy pylons
+- Scout for Dark Templas and adapt
+- Send 2 probes to attack enemy workers that get too close to our pylons/nexus
+- Improve micro agaisnt static defense
 
 ## FIXME
 
@@ -37,12 +41,17 @@
 - Fix one forge taking 2 upgrades while one is idle
 - Fix expanding blocking other things when it could not
 - Consider distance and range for stalker micro (i.e ravager can attack even if ling in the front cant)
-
-### WIP
-
 - Move stalkers out of the way then others are trying to blink back
 - Buildings controllers should have no strategic logic inside
 - Improve stalker army control
+- Enable stalker micro as soon as it is warped in
+
+### WIP
+
+- Q Learning for stalker micro
+- Unit tests for q_learning core functions
+- Q Learning should learn how to kill without dying and not how to flee
+- Fix debugger controller
 
 #### DONE
 

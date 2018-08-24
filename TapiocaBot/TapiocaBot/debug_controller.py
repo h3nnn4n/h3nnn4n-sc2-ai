@@ -31,7 +31,7 @@ class DebugController:
                 debug=[
                     debug_pb.DebugCommand(
                         kill_unit=debug_pb.DebugKillUnit(
-                            tag=unit_tag
+                            tag=[unit_tag]
                         )
                     )
                 ]

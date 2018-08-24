@@ -114,6 +114,14 @@ class StalkerQLearningController:
         self.step_count = 0
 
     async def step(self, unit_tag, can_blink=False):
+        if self.idle_count > 10:
+            print('rip ', unit_tag)
+            await self.bot.debug_controller.debug_destroy_unit(unit_tag)
+
+            self.current_unit_tag = unit_tag
+            self.died_last_round = True
+            self.reward['death'] += 1
+
         if self.current_unit_tag is None:
             self.current_unit_tag = unit_tag
         elif self.current_unit_tag != unit_tag:
@@ -127,10 +135,6 @@ class StalkerQLearningController:
 
         self.step_count += 1
         self.idle_count += 1 if self.bot.units.find_by_tag(unit_tag).is_idle else 0
-
-        if self.idle_count > 100:
-            await self.bot.debug_controller.debug_destroy_unit(unit_tag)
-        await self.bot.debug_controller.debug_destroy_unit(unit_tag)
 
         # update reward
         if self.previous_state is not None:

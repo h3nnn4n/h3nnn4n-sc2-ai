@@ -93,7 +93,7 @@ class ArmyController:
         for unit_type in self.units_available_for_attack.keys():
             for unit in self.bot.units(unit_type).idle:
                 if unit.tag not in self.soldiers:
-                    self.add(unit.tag, {'state': 'new'})
+                    self.add(unit.tag, {'state': 'attacking'})
                     if self.verbose:
                         print('   ->  Found new unit')
 

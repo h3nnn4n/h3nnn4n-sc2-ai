@@ -46,6 +46,8 @@ class TapiocaBot(sc2.BotAI):
         await self.army_controller.step()
         await self.execute_order_queue()
 
+        await self.debug_controller.send()
+
     async def do(self, action):
         self.order_queue.append(action)
 

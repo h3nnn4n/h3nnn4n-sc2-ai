@@ -1,4 +1,4 @@
-# pylint: disable=C0301,E1102
+# pylint: disable=C0301,E1102,E0401
 
 from patch_path import patch_path  # Use local version
 patch_path()

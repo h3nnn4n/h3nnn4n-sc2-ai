@@ -1,3 +1,5 @@
+# pylint: disable=E0401
+
 import random
 import math
 from unit_ai_controller import UnitAiController
@@ -88,7 +90,7 @@ class StalkerQLearningController(UnitAiController):
         self.step_count = 0
         self.idle_count = 0
         self.previous_state = None
-        self.state = None
+        self.current_state = None
         self.last_action = None
         self.last_reward = 0
         self.killed_value_units = 0
@@ -120,11 +122,7 @@ class StalkerQLearningController(UnitAiController):
         self.idle_count = 0
         self.step_count = 0
 
-    def before_action(self, unit_tag, can_blink=False):
-        self.update_units_killed()
-        self.step_count += 1
-        self.idle_count += 1 if self.bot.units.find_by_tag(unit_tag).is_idle else 0
-
+    def before_action_(self, unit_tag, can_blink=False):
         if self.idle_count > 100:
             print('killSwitch triggered: ', unit_tag)
             # await self.bot.debug_controller.debug_destroy_unit(unit_tag)
@@ -150,17 +148,6 @@ class StalkerQLearningController(UnitAiController):
             print('reset reward %f' % self.last_reward)
             self.reset_reward()
 
-        # update reward
-        if self.previous_state is not None:
-            reward = self.get_reward(unit_tag, self.state)
-            self.learn(self.previous_state, self.last_action, reward - self.last_reward, self.state)
-
-        # get next action
-        state = self.extract_state(unit_tag, can_blink=can_blink)
-        action, action_name = self.choose_action(unit_tag, state)
-
-        reward = self.get_reward(unit_tag, state)
-
         # self.bot.debug_controller.debug_text_screen('%s' % str(self.previous_state))
         # self.bot.debug_controller.debug_text_screen('%s' % str(self.state))
         # self.bot.debug_controller.debug_text_screen('')
@@ -182,15 +169,61 @@ class StalkerQLearningController(UnitAiController):
         #     0 + sum(self.reward['enemy_damage'].values()))
         # )
 
-        self.previous_state = self.state
-        self.state = state
+########################
+
+    def prepare_first_step(self, unit_tag):
+        self.current_state = self.extract_state(unit_tag)
+        self.current_reward = self.get_reward(unit_tag, self.current_state)
+
+    def prepare_step(self, unit_tag):
+        pass
+
+    def before_action(self, unit_tag):
+        action, action_name = self.choose_action(unit_tag, self.current_state)
+
         self.last_action = action_name
-        self.last_reward = reward
 
-        # await self.bot.debug_controller.send()
-
-        # execute the action0
         return action
+
+    def after_action(self, unit_tag):
+        self.previous_state = self.current_state
+        self.current_state = self.extract_state(unit_tag)
+
+        self.last_reward = self.current_reward
+        self.current_reward = self.get_reward(unit_tag, self.current_state)
+
+        self.learn(self.previous_state, self.last_action, self.current_reward - self.last_reward, self.current_state)
+
+        self.debug(unit_tag)
+
+    def end_step(self, unit_tag):
+        self.update_units_killed()
+        self.step_count += 1
+        self.idle_count += 1 if self.bot.units.find_by_tag(unit_tag).is_idle else 0
+
+    def debug(self, unit_tag):
+        self.bot.debug_controller.debug_text_screen('%s' % str(self.previous_state))
+        self.bot.debug_controller.debug_text_screen('%s' % str(self.current_state))
+        self.bot.debug_controller.debug_text_screen('')
+        self.bot.debug_controller.debug_text_screen('                steps: %8d' % self.step_count)
+        self.bot.debug_controller.debug_text_screen('           steps_idle: %8d' % self.idle_count)
+        self.bot.debug_controller.debug_text_screen('         total_reward: %8.2f' % self.current_reward)
+        self.bot.debug_controller.debug_text_screen('               reward: %8.2f' % (self.current_reward - self.last_reward))
+        self.bot.debug_controller.debug_text_screen('               action: %s' % self.last_action)
+        self.bot.debug_controller.debug_text_screen('                 idle: %s' % (
+            self.bot.units.find_by_tag(unit_tag).is_idle)
+        )
+        self.bot.debug_controller.debug_text_screen('')
+        self.bot.debug_controller.debug_text_screen('         total_deaths: %8d' % self.total_deaths)
+        self.bot.debug_controller.debug_text_screen('          total_kills: %8d' % self.total_kills)
+        self.bot.debug_controller.debug_text_screen('           most_kills: %8d' % self.most_kills)
+        self.bot.debug_controller.debug_text_screen('       highest_reward: %8.2f' % self.highest_reward)
+        self.bot.debug_controller.debug_text_screen('most_damage_inflicted: %8.2f' % self.most_damage_inflicted)
+        self.bot.debug_controller.debug_text_screen('     damage_inflicted: %8.2f' % (
+            0 + sum(self.reward['enemy_damage'].values()))
+        )
+
+########################
 
     def get_reward(self, unit_tag, state):
         unit = self.bot.units.find_by_tag(unit_tag)

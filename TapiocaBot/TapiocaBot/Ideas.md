@@ -25,6 +25,9 @@
 - Make the code more generic (to allow reuse for other races)
 - Oracle harass
 - Allow 3gate stalker all in to expand and go on with the game if the presure wont break in
+- Versus terran find a way to deal with the tanks
+- Versus zerg (hjax specially) find a way to deal with mass lings
+- Improve retreat code
 
 ## FIXME
 

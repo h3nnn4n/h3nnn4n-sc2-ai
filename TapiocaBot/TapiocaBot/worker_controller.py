@@ -1,6 +1,7 @@
 import random
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
+from sc2.position import Point2
 
 
 class WorkerController:
@@ -13,8 +14,15 @@ class WorkerController:
 
         self.priority = ['MINERAL', 'GAS']
 
-        self.number_of_scouting_workers = 1
+        self.number_of_near_scouts = 1
+        self.number_of_global_scouts = 1
+        self.number_of_scouting_workers = (
+            self.number_of_near_scouts +
+            self.number_of_global_scouts
+        )
+        self.number_of_near_expansions_to_scout = 4
         self.scouting_workers = {}
+        self.scouting_queue = []
 
         self.worker_unit_types = [
             UnitTypeId.DRONE,
@@ -72,18 +80,48 @@ class WorkerController:
             await self.bot.do(unit.move(target))
 
     def get_scouting_position(self, unit_tag):
+        info = self.scouting_workers[unit_tag]
         unit = self.bot.units.find_by_tag(unit_tag)
 
-        info = self.scouting_workers[unit_tag]
+        if info['mode'] == 'global':
+            if len(self.scouting_queue) == 0:
+                self.scouting_queue = list(self.bot.expansion_locations.keys())
 
-        if 'scout_targets' not in info:
-            info['scout_targets'] = []
+            target = unit.position.closest(self.scouting_queue)
+            self.scouting_queue.pop(self.scouting_queue.index(target))
+        elif info['mode'] == 'near':
+            if 'scouting_queue' not in info:
+                info['scouting_queue'] = []
 
-        if len(info['scout_targets']) == 0:
-            info['scout_targets'] = list(self.bot.expansion_locations.keys())
+            # self.number_of_near_expansions_to_scout
+            if len(info['scouting_queue']) == 0:
+                info['scouting_queue'] = list(self.bot.expansion_locations.keys())
 
-        target = unit.position.closest(info['scout_targets'])
-        info['scout_targets'].pop(info['scout_targets'].index(target))
+                nexi = self.bot.units(UnitTypeId.NEXUS).ready
+
+                ignore = []
+
+                for nexus in nexi:
+                    for target in info['scouting_queue']:
+                        if nexus.position.distance_to(Point2(target)) <= 5:
+                            ignore.append(target)
+
+                for target in ignore:
+                    info['scouting_queue'].pop(info['scouting_queue'].index(target))
+
+                info['scouting_queue'].sort(key=lambda x: self.bot.start_location.distance_to(Point2(x)))
+                info['scouting_queue'] = info['scouting_queue'][:self.number_of_near_expansions_to_scout]
+
+                # print('start: ', self.bot.start_location)
+                # for nexus in nexi:
+                #     print('nexus pos: ', nexus.position.to2)
+                # print(info['scouting_queue'])
+
+                # import sys
+                # sys.exit()
+
+            target = unit.position.closest(info['scouting_queue'])
+            info['scouting_queue'].pop(info['scouting_queue'].index(target))
 
         return target
 
@@ -99,12 +137,34 @@ class WorkerController:
 
     async def get_more_scouting_workers(self):
         if len(self.scouting_workers) < self.number_of_scouting_workers:
+            number_of_global_scouts = len(
+                list(
+                    filter(
+                        lambda x: x['mode'] == 'global',
+                        self.scouting_workers.values()
+                    )
+                )
+            )
+            number_of_near_scouts = len(
+                list(
+                    filter(
+                        lambda x: x['mode'] == 'near',
+                        self.scouting_workers.values()
+                    )
+                )
+            )
+
             probes = self.bot.units(UnitTypeId.PROBE)
 
             if probes.exists:
                 new_scouting_probe = probes.first
 
-                self.scouting_workers[new_scouting_probe.tag] = {}
+                if number_of_near_scouts < self.number_of_near_scouts:
+                    self.scouting_workers[new_scouting_probe.tag] = {'mode': 'near'}
+                elif number_of_global_scouts < self.number_of_global_scouts:
+                    self.scouting_workers[new_scouting_probe.tag] = {'mode': 'global'}
+                else:
+                    self.scouting_workers[new_scouting_probe.tag] = {'mode': 'global'}
 
                 await self.bot.do(new_scouting_probe.stop())
 

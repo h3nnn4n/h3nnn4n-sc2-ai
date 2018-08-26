@@ -53,17 +53,17 @@
 ### WIP
 
 - Q Learning for stalker micro
-- Unit tests for q_learning core functions
 - Q Learning should learn how to kill without dying and not how to flee
-- Fix debugger controller
 
-- Early Scout with probes
+- Probe micro
 - React to early cheese. Attack proxy structures with probes + Attack scouting workers
 
 - Buildings controllers should have no strategic logic inside
 
 #### DONE
 
+- Fix debugger controller
+- Early Scout with probes
 - Stalker micro
 - Ignore zergs eggs as targets
 - Fix twilight council sometimes (or all) not being built when 3gate blink stalker all in
@@ -78,3 +78,7 @@
 - Pick up from the basic build order
 - Fix Expand Now breaking the game
 - Research Zealog Legs and Blink
+
+#### RIP
+
+- Unit tests for q_learning core functions

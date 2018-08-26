@@ -5,14 +5,16 @@ class UnitAiController:
 
         self.first_iteration = True
 
-    async def step(self, unit_tag):
+    def step(self, unit_tag):
         if not hasattr(self, '_first_iteration_passed'):
-            self.prepare_first_step(unit_tag)
             self._first_iteration_passed = False
-            print('prepare first step')
-        else:
+
+        if self._first_iteration_passed:
             self.after_action(unit_tag)
             self.end_step(unit_tag)
+        else:
+            self.prepare_first_step(unit_tag)
+            self._first_iteration_passed = True
 
         self.prepare_step(unit_tag)
         return self.before_action(unit_tag)

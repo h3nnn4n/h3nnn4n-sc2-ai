@@ -142,6 +142,6 @@ class StalkerController:
         # await self.bot._client.move_camera(unit.position)  # FIXME
         # ValueError: Protocol message RequestAction has no "action" field.
 
-        action = await self.stalker_q_learning_controller.step(unit_tag)
+        action = self.stalker_q_learning_controller.step(unit_tag)
 
         await self.bot.do(action)

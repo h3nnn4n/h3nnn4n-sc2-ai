@@ -65,9 +65,9 @@ class StalkerQLearningController(UnitAiController):
             'walk_left': self.action_walk_left
         }
 
-        self.alpha = 0.1
-        self.gamma = 0.6
-        self.epsilon = 0.05
+        self.alpha = 0.05
+        self.gamma = 0.95
+        self.epsilon = 0.1
 
         self.q_table = {}
 
@@ -76,9 +76,9 @@ class StalkerQLearningController(UnitAiController):
         self.reward_weights = {
             'enemy_damage': 2.0,
             'damage_taken': -4.0,
-            'units_killed': 1000,
-            'death': -1000,
-            'step': -0.1,
+            'units_killed': 250,
+            'death': -250,
+            'step': -0.5,
             'idle': -10.0,
         }
 

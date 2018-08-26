@@ -31,17 +31,25 @@ class TapiocaBot(sc2.BotAI):
         self.verbose = verbose
         self.visual_debug = visual_debug
 
+        self.event_manager = EventManager()
+
         self.debug_controller = DebugController(bot=self, verbose=self.verbose)
         self.army_controller = ArmyController(bot=self, verbose=self.verbose)
+
         self.order_queue = []
 
     def on_start(self):
         self.army_controller.init()
         # self._client.game_step = 2
 
+        # self.event_manager.add_event(self.army_controller.step, time_inverval=0.5, jitter=0.0)
+
     async def on_step(self, iteration):
         if self.verbose:
             sys.stdout.flush()
+
+        # for event in self.event_manager.get_current_events(self.time):
+        #     await event()
 
         await self.army_controller.step()
         await self.execute_order_queue()

@@ -13,6 +13,18 @@ class WorkerController:
 
         self.priority = ['MINERAL', 'GAS']
 
+        self.number_of_scouting_workers = 1
+        self.scouting_workers = {}
+
+        self.worker_unit_types = [
+            UnitTypeId.DRONE,
+            UnitTypeId.PROBE,
+            UnitTypeId.SCV
+        ]
+        self.threat_proximity = 20
+        self.proxyt_proximity = 40
+        self.militia = {}
+
         self.max_workers_on_gas = 9
         self.current_workers_on_gas = 0
 
@@ -31,11 +43,96 @@ class WorkerController:
         self.mineral_field_count_cooldown = 10
 
     async def step(self):
+        self.update_threats()
+        await self.step_scouting_workers()
         self.update_worker_count_on_gas()
         await self.build_workers()
         await self.handle_idle_workers()
         await self.on_nexus_ready()
         await self.on_mineral_field_depleted()
+
+    async def step_scouting_workers(self):
+        self.update_scouting_worker_status()
+        await self.get_more_scouting_workers()
+        await self.micro_scouting_workers()
+
+    async def micro_scouting_workers(self):
+        for unit_tag in self.scouting_workers.keys():
+            await self.micro_scouting_worker(unit_tag)
+
+    async def micro_scouting_worker(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        # nearby_enemy_units = self.bot.known_enemy_units.filter(
+        #     lambda unit: unit.type_id not in self.worker_unit_types
+        # ).closer_than(10, unit.position)
+
+        if unit.is_idle:
+            target = self.get_scouting_position(unit_tag)
+            await self.bot.do(unit.move(target))
+
+    def get_scouting_position(self, unit_tag):
+        unit = self.bot.units.find_by_tag(unit_tag)
+
+        info = self.scouting_workers[unit_tag]
+
+        if 'scout_targets' not in info:
+            info['scout_targets'] = []
+
+        if len(info['scout_targets']) == 0:
+            info['scout_targets'] = list(self.bot.expansion_locations.keys())
+
+        target = unit.position.closest(info['scout_targets'])
+        info['scout_targets'].pop(info['scout_targets'].index(target))
+
+        return target
+
+    def update_scouting_worker_status(self):
+        dead_scouts = []
+
+        for unit_tag in self.scouting_workers.keys():
+            if self.bot.units.find_by_tag(unit_tag) is None:
+                dead_scouts.append(unit_tag)
+
+        for unit_tag in dead_scouts:
+            self.scouting_workers.pop(unit_tag)
+
+    async def get_more_scouting_workers(self):
+        if len(self.scouting_workers) < self.number_of_scouting_workers:
+            probes = self.bot.units(UnitTypeId.PROBE)
+
+            if probes.exists:
+                new_scouting_probe = probes.first
+
+                self.scouting_workers[new_scouting_probe.tag] = {}
+
+                await self.bot.do(new_scouting_probe.stop())
+
+    def update_threats(self):
+        nexi = self.bot.units(UnitTypeId.NEXUS)
+
+        nearby_enemy_workers = set()
+        nearby_enemy_units = set()
+        nearby_enemy_structures = set()
+
+        for nexus in nexi:
+            nearby_enemy_workers.update(
+                self.bot.known_enemy_units.filter(
+                    lambda unit: unit.type_id in self.worker_unit_types
+                ).closer_than(self.threat_proximity, nexus.position)
+            )
+
+            nearby_enemy_units.update(
+                self.bot.known_enemy_units.filter(
+                    lambda unit: unit.type_id not in self.worker_unit_types
+                ).closer_than(self.threat_proximity, nexus.position)
+            )
+
+            nearby_enemy_structures.update(
+                self.bot.known_enemy_structures.closer_than(
+                    self.threat_proximity, nexus.position
+                )
+            )
 
     def update_worker_count_on_gas(self):
         self.current_workers_on_gas = 0
@@ -59,7 +156,9 @@ class WorkerController:
         if not self.auto_handle_idle_workers:
             return
 
-        idle_workers = self.bot.units(UnitTypeId.PROBE).idle
+        idle_workers = self.bot.units(UnitTypeId.PROBE).idle.filter(
+            lambda unit: unit.tag not in self.scouting_workers
+        )
 
         if idle_workers.amount == 0 or self.bot.units(UnitTypeId.NEXUS).amount == 0:
             return

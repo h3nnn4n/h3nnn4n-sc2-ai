@@ -28,6 +28,9 @@
 - Versus terran find a way to deal with the tanks
 - Versus zerg (hjax specially) find a way to deal with mass lings
 - Improve retreat code
+- Avoid microing back into static defense range
+- Add a failsafe to the worker scouting logic so it doesnt kill all the workers while trying to scout
+- Micro scouting workers to keep they alive for as long as possible
 
 ## FIXME
 
@@ -44,8 +47,12 @@
 ### WIP
 
 - Move stalkers out of the way then others are trying to blink back
-- Buildings controllers should have no strategic logic inside
 - Improve stalker army control
+
+- Early Scout with probes
+- React to early cheese. Attack proxy structures with probes + Attack scouting workers
+
+- Buildings controllers should have no strategic logic inside
 
 #### DONE
 

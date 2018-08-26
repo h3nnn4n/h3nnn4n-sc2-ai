@@ -25,6 +25,9 @@
 - Make the code more generic (to allow reuse for other races)
 - Oracle harass
 - Allow 3gate stalker all in to expand and go on with the game if the presure wont break in
+- Scout for proxy pylons
+- Scout for Dark Templas and adapt
+- Send 2 probes to attack enemy workers that get too close to our pylons/nexus
 - Versus terran find a way to deal with the tanks
 - Versus zerg (hjax specially) find a way to deal with mass lings
 - Improve retreat code
@@ -43,11 +46,16 @@
 - Fix one forge taking 2 upgrades while one is idle
 - Fix expanding blocking other things when it could not
 - Consider distance and range for stalker micro (i.e ravager can attack even if ling in the front cant)
+- Move stalkers out of the way then others are trying to blink back
+- Improve stalker army control
+- Enable stalker micro as soon as it is warped in
 
 ### WIP
 
-- Move stalkers out of the way then others are trying to blink back
-- Improve stalker army control
+- Q Learning for stalker micro
+- Unit tests for q_learning core functions
+- Q Learning should learn how to kill without dying and not how to flee
+- Fix debugger controller
 
 - Early Scout with probes
 - React to early cheese. Attack proxy structures with probes + Attack scouting workers

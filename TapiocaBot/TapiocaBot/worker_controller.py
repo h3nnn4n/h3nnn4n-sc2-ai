@@ -60,6 +60,12 @@ class WorkerController:
         await self.on_mineral_field_depleted()
 
     async def step_scouting_workers(self):
+        if self.bot.units.filter(
+            lambda x: x.type_id not in self.worker_unit_types
+        ).amount > 0:
+            self.scouting_workers = {}
+            return
+
         self.update_scouting_worker_status()
         await self.get_more_scouting_workers()
         await self.micro_scouting_workers()
@@ -83,7 +89,8 @@ class WorkerController:
                 return
 
             threats = self.bot.known_enemy_units.filter(
-                lambda x: x.can_attack_ground
+                lambda x: x.can_attack_ground and
+                x.type_id not in self.worker_unit_types
             )
 
             if not threats.exists:

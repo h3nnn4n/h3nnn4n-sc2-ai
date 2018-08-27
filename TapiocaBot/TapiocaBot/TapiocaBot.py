@@ -60,7 +60,7 @@ class TapiocaBot(sc2.BotAI):
     def on_start(self):
         self.army_controller.init()
 
-        self.event_manager.add_event(self.worker_controller.step, 0.5)
+        self.event_manager.add_event(self.worker_controller.step, 0.1, jitter=0)
         self.event_manager.add_event(self.building_controller.update_nexus_list, 2.5)
         self.event_manager.add_event(self.build_order_controller.step, 0.5)
         self.event_manager.add_event(self.army_controller.step, 0.1, jitter=0)

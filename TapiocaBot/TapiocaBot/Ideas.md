@@ -55,6 +55,7 @@
 - Q Learning for stalker micro
 - Q Learning should learn how to kill without dying and not how to flee
 
+- Avoid static defense
 - Probe micro
 - React to early cheese. Attack proxy structures with probes + Attack scouting workers
 

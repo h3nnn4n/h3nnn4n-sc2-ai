@@ -133,6 +133,10 @@ class TapiocaBot(sc2.BotAI):
             '       army_size: %3d' % self.army_controller.army_size(),
             '     ememy_units: %3d' % self.known_enemy_units.amount,
             'ememy_structures: %3d' % self.known_enemy_structures.amount,
+            '',
+            'ememy_structures_nearby: %3d' % len(self.worker_controller.nearby_enemy_structures_found),
+            '   ememy_workers_nearby: %3d' % len(self.worker_controller.nearby_enemy_workers_found),
+            '     ememy_units_nearby: %3d' % len(self.worker_controller.nearby_enemy_units_found),
         ]
 
         y = 0

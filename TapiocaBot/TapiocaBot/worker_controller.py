@@ -32,6 +32,10 @@ class WorkerController:
         self.threat_proximity = 20
         self.proxyt_proximity = 40
         self.militia = {}
+        self.nearby_enemy_workers_found = {}
+        self.nearby_enemy_units_found = {}
+        self.nearby_enemy_structures_found = {}
+        self.number_of_units_to_attack_enemy_workers = 2
 
         self.max_workers_on_gas = 9
         self.current_workers_on_gas = 0
@@ -53,6 +57,7 @@ class WorkerController:
     async def step(self):
         self.update_threats()
         await self.step_scouting_workers()
+        await self.step_militia_workers()
         self.update_worker_count_on_gas()
         await self.build_workers()
         await self.handle_idle_workers()
@@ -60,7 +65,7 @@ class WorkerController:
         await self.on_mineral_field_depleted()
 
     async def step_scouting_workers(self):
-        if self.bot.units.filter(
+        if self.bot.units.not_structure.filter(
             lambda x: x.type_id not in self.worker_unit_types
         ).amount > 0:
             self.scouting_workers = {}
@@ -129,7 +134,9 @@ class WorkerController:
                 info['scouting_queue'] = []
 
             if len(info['scouting_queue']) == 0:
-                info['scouting_queue'] = list(self.bot.expansion_locations.keys())
+                info['scouting_queue'] = list(
+                    self.bot.expansion_locations.keys()
+                )
 
                 nexi = self.bot.units(UnitTypeId.NEXUS).ready
 
@@ -141,7 +148,9 @@ class WorkerController:
                             ignore.append(target)
 
                 for target in ignore:
-                    info['scouting_queue'].pop(info['scouting_queue'].index(target))
+                    info['scouting_queue'].pop(info['scouting_queue'].index(
+                        target)
+                    )
 
                 info['scouting_queue'].sort(key=lambda x: self.bot.start_location.distance_to(Point2(x)))
                 info['scouting_queue'] = info['scouting_queue'][:self.number_of_near_expansions_to_scout]
@@ -186,39 +195,90 @@ class WorkerController:
                 new_scouting_probe = probes.first
 
                 if number_of_near_scouts < self.number_of_near_scouts:
-                    self.scouting_workers[new_scouting_probe.tag] = {'mode': 'near', 'new': True}
+                    self.scouting_workers[new_scouting_probe.tag] = {
+                        'mode': 'near',
+                        'new': True
+                    }
                 elif number_of_global_scouts < self.number_of_global_scouts:
-                    self.scouting_workers[new_scouting_probe.tag] = {'mode': 'global', 'new': True}
+                    self.scouting_workers[new_scouting_probe.tag] = {
+                        'mode': 'global',
+                        'new': True
+                    }
                 else:
-                    self.scouting_workers[new_scouting_probe.tag] = {'mode': 'global', 'new': True}
+                    self.scouting_workers[new_scouting_probe.tag] = {
+                        'mode': 'global',
+                        'new': True
+                    }
 
                 await self.bot.do(new_scouting_probe.stop())
+
+    async def step_militia_workers(self):
+        # self.update_militia()
+        # await self.micro_militia()
+        pass
+
+    async def micro_militia(self):
+        pass
+
+    def update_militia(self):
+        for enemy_tag, info in self.nearby_enemy_workers_found.items():
+            if 'attacking_units' not in info.keys():
+                info['attacking_units'] = {}
+
+            to_delete = []
+            for unit_tag in info['attacking_units'].keys():
+                if self.bot.units.find_by_tag(unit_tag) is None:
+                    to_delete.append(unit_tag)
+
+            for unit_tag in to_delete:
+                info['attacking_units'].pop(unit_tag)
+
+            militia_lacking = (
+                len(info['attacking_units']) -
+                self.number_of_units_to_attack_enemy_workers
+            )
+
+            for _ in range(militia_lacking):
+                new = self.get_workers_for_militia()
+                info['attacking_units'][new] = {'target': enemy_tag}
+
+    def get_workers_for_militia(self):
+        for worker in self.bot.units(UnitTypeId.PROBE).gathering:
+            if worker.tag not in self.militia.keys():
+                self.militia[worker.tag] = {}
+                return worker.tag
 
     def update_threats(self):
         nexi = self.bot.units(UnitTypeId.NEXUS)
 
-        nearby_enemy_workers = set()
-        nearby_enemy_units = set()
-        nearby_enemy_structures = set()
+        nearby_enemy_workers = []
+        nearby_enemy_units = []
+        nearby_enemy_structures = []
 
         for nexus in nexi:
-            nearby_enemy_workers.update(
-                self.bot.known_enemy_units.filter(
-                    lambda unit: unit.type_id in self.worker_unit_types
-                ).closer_than(self.threat_proximity, nexus.position)
+            nearby_enemy_workers = self.bot.known_enemy_units.filter(
+                lambda unit: unit.type_id in self.worker_unit_types
+            ).closer_than(self.threat_proximity, nexus.position)
+
+            nearby_enemy_units = self.bot.known_enemy_units.filter(
+                lambda unit: unit.type_id not in self.worker_unit_types
+            ).closer_than(self.threat_proximity, nexus.position)
+
+            nearby_enemy_structures = self.bot.known_enemy_structures.closer_than(
+                self.threat_proximity, nexus.position
             )
 
-            nearby_enemy_units.update(
-                self.bot.known_enemy_units.filter(
-                    lambda unit: unit.type_id not in self.worker_unit_types
-                ).closer_than(self.threat_proximity, nexus.position)
-            )
+            for unit in nearby_enemy_workers:
+                if unit.tag not in self.nearby_enemy_workers_found:
+                    self.nearby_enemy_workers_found[unit.tag] = {'position': unit.position}
 
-            nearby_enemy_structures.update(
-                self.bot.known_enemy_structures.closer_than(
-                    self.threat_proximity, nexus.position
-                )
-            )
+            for unit in nearby_enemy_units:
+                if unit.tag not in self.nearby_enemy_workers_found:
+                    self.nearby_enemy_workers_found[unit.tag] = {'position': unit.position}
+
+            for unit in nearby_enemy_structures:
+                if unit.tag not in self.nearby_enemy_structures_found:
+                    self.nearby_enemy_structures_found[unit.tag] = {'position': unit.position}
 
     def update_worker_count_on_gas(self):
         self.current_workers_on_gas = 0

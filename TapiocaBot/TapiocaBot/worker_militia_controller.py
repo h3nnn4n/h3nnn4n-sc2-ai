@@ -38,7 +38,7 @@ class WorkerMilitiaController:
         }
 
     async def step(self):
-        attack_units = self.bot.units.filter(
+        attack_units = self.bot.units.not_structure.filter(
             lambda unit: unit.type_id not in self.worker_unit_types
         ).amount
 
@@ -114,6 +114,7 @@ class WorkerMilitiaController:
 
                 for unit_tag in to_delete:
                     info['attacking_units'].pop(unit_tag)
+                    self.remove_worker_from_militia(unit_tag)
 
                 militia_lacking = (
                     target_data['units_required'] - len(info['attacking_units'])
@@ -130,29 +131,47 @@ class WorkerMilitiaController:
             for enemy_tag, info in target_data['threats'].items():
                 enemy = self.bot.known_enemy_units.find_by_tag(enemy_tag)
 
+                if enemy is None:
+                    to_delete.append((target_type, enemy_tag))
+
+                    for unit_tag in info['attacking_units']:
+                        self.remove_worker_from_militia(unit_tag)
+
+                    break
+
                 for unit_tag in info['attacking_units']:
                     unit = self.bot.units.find_by_tag(unit_tag)
+
                     if unit is None:
-                        return
-
-                    if enemy is None:
-                        to_delete.append((target_type, enemy_tag))
-
-                        if unit_tag is self.militia.keys():
-                            self.militia.pop(unit_tag)
-
-                        break
+                        self.remove_worker_from_militia(unit_tag)
+                        continue
 
                     await self.bot.do(unit.attack(enemy))
 
         for target_type, target_tag in to_delete:
             if target_tag in self.target_types[target_type].keys():
                 self.target_types[target_type].pop(target_tag)
+                print(
+                    'removing: ',
+                    self.bot.time,
+                    target_tag,
+                    target_type
+                )
             else:
-                print(target_tag, target_type)
+                print(
+                    'failed to delete: ',
+                    self.bot.time,
+                    target_tag,
+                    target_type
+                )
 
     def get_workers_for_militia(self):
-        for worker in self.bot.units(UnitTypeId.PROBE).gathering:
-            if worker.tag not in self.militia.keys():
-                self.militia[worker.tag] = {}
+        for worker in self.bot.units(UnitTypeId.PROBE):
+            if not worker.is_attacking:
                 return worker.tag
+
+        # print('WARN, found no workers for militia')
+
+    def remove_worker_from_militia(self, unit_tag):
+        if unit_tag is self.militia.keys():
+            self.militia.pop(unit_tag)

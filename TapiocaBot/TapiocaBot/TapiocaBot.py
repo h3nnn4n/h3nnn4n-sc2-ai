@@ -114,34 +114,18 @@ class TapiocaBot(sc2.BotAI):
         for unit_type in self.army_controller.units_available_for_attack.keys():
             total_units += self.units(unit_type).idle.amount
 
-        number_of_minerals = sum([self.state.mineral_field.closer_than(10, x).amount for x in self.townhalls])
-        lacking = self.building_controller.auto_expand_mineral_threshold - number_of_minerals
-
-        robo_idle = self.units(UnitTypeId.ROBOTICSFACILITY).ready.noqueue.amount > 0
-
         # Text
 
         messages = [
-            '        priority: %s ' % self.coordinator.priority,
-            '       robo_idle: %3d' % robo_idle,
-            '   robo_priority: %3d' % self.coordinator.prioritize_robo_units,
-            ' can_do_warpgate: %3d' % self.coordinator.can('build_gateway_units'),
-            '   minerals_left: %3d' % number_of_minerals,
-            'minerals_lacking: %3d' % lacking,
-            '    bases_needed: %3d' % ceil(lacking / 8.0),
-            '   bases_pending: %3d' % self.already_pending(UnitTypeId.NEXUS),
             '       n_workers: %3d' % self.units(UnitTypeId.PROBE).amount,
-            '       n_zealots: %3d' % self.units(UnitTypeId.ZEALOT).amount,
             '      n_stalkers: %3d' % self.units(UnitTypeId.STALKER).amount,
-            '     n_immortals: %3d' % self.units(UnitTypeId.IMMORTAL).amount,
-            '       idle_army: %3d' % total_units,
-            '       army_size: %3d' % self.army_controller.army_size(),
-            '     ememy_units: %3d' % self.known_enemy_units.amount,
-            'ememy_structures: %3d' % self.known_enemy_structures.amount,
+            '    militia_size: %3d' % len(self.worker_controller.militia_controller.militia),
             '',
             'ememy_structures_nearby: %3d' % len(self.worker_controller.militia_controller.nearby_enemy_structures_found),
             '   ememy_workers_nearby: %3d' % len(self.worker_controller.militia_controller.nearby_enemy_workers_found),
             '     ememy_units_nearby: %3d' % len(self.worker_controller.militia_controller.nearby_enemy_units_found),
+            '',
+            '  know_enemy_structures: %3d' % len(self.known_enemy_structures)
         ]
 
         y = 0

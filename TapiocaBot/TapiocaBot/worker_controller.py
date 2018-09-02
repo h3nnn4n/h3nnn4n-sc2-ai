@@ -215,7 +215,6 @@ class WorkerController:
     async def step_militia_workers(self):
         self.update_militia()
         await self.micro_militia()
-        pass
 
     def update_militia(self):
         for enemy_tag, info in self.nearby_enemy_workers_found.items():
@@ -257,46 +256,46 @@ class WorkerController:
                 return worker.tag
 
     def update_threats(self):
-        nexi = self.bot.units(UnitTypeId.NEXUS)
+        # nexi = self.bot.units(UnitTypeId.NEXUS)
 
         nearby_enemy_workers = []
         nearby_enemy_units = []
         nearby_enemy_structures = []
 
-        for nexus in nexi:
-            # nearby_enemy_workers = self.bot.known_enemy_units.filter(
-            #     lambda unit: unit.type_id in self.worker_unit_types
-            # ).closer_than(self.threat_proximity, nexus.position)
+        # for nexus in nexi:
+        #     nearby_enemy_workers = self.bot.known_enemy_units.filter(
+        #         lambda unit: unit.type_id in self.worker_unit_types
+        #     ).closer_than(self.threat_proximity, nexus.position)
 
-            # nearby_enemy_units = self.bot.known_enemy_units.filter(
-            #     lambda unit: unit.type_id not in self.worker_unit_types
-            # ).closer_than(self.threat_proximity, nexus.position)
+        #     nearby_enemy_units = self.bot.known_enemy_units.filter(
+        #         lambda unit: unit.type_id not in self.worker_unit_types
+        #     ).closer_than(self.threat_proximity, nexus.position)
 
-            # nearby_enemy_structures = self.bot.known_enemy_structures.closer_than(
-            #     self.threat_proximity, nexus.position
-            # )
+        #     nearby_enemy_structures = self.bot.known_enemy_structures.closer_than(
+        #         self.threat_proximity, nexus.position
+        #     )
 
-            nearby_enemy_workers = self.bot.known_enemy_units.filter(
-                lambda unit: unit.type_id in self.worker_unit_types
-            )
+        nearby_enemy_workers = self.bot.known_enemy_units.filter(
+            lambda unit: unit.type_id in self.worker_unit_types
+        )
 
-            nearby_enemy_units = self.bot.known_enemy_units.filter(
-                lambda unit: unit.type_id not in self.worker_unit_types
-            )
+        nearby_enemy_units = self.bot.known_enemy_units.filter(
+            lambda unit: unit.type_id not in self.worker_unit_types
+        )
 
-            nearby_enemy_structures = self.bot.known_enemy_structures
+        nearby_enemy_structures = self.bot.known_enemy_structures
 
-            for unit in nearby_enemy_workers:
-                if unit.tag not in self.nearby_enemy_workers_found:
-                    self.nearby_enemy_workers_found[unit.tag] = {'position': unit.position}
+        for unit in nearby_enemy_workers:
+            if unit.tag not in self.nearby_enemy_workers_found:
+                self.nearby_enemy_workers_found[unit.tag] = {'position': unit.position}
 
-            for unit in nearby_enemy_units:
-                if unit.tag not in self.nearby_enemy_workers_found:
-                    self.nearby_enemy_workers_found[unit.tag] = {'position': unit.position}
+        for unit in nearby_enemy_units:
+            if unit.tag not in self.nearby_enemy_workers_found:
+                self.nearby_enemy_workers_found[unit.tag] = {'position': unit.position}
 
-            for unit in nearby_enemy_structures:
-                if unit.tag not in self.nearby_enemy_structures_found:
-                    self.nearby_enemy_structures_found[unit.tag] = {'position': unit.position}
+        for unit in nearby_enemy_structures:
+            if unit.tag not in self.nearby_enemy_structures_found:
+                self.nearby_enemy_structures_found[unit.tag] = {'position': unit.position}
 
     def update_worker_count_on_gas(self):
         self.current_workers_on_gas = 0

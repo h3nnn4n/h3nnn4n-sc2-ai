@@ -70,6 +70,6 @@ async def join_ladder_game(host, port, players, realtime, portconfig,
         logging.error(f"Connection was closed before the game ended")
         return None
     finally:
-        ws_connection.close()
+        await ws_connection.close()
 
     return result

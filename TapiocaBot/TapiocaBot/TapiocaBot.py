@@ -2,7 +2,10 @@ import numpy as np
 import random
 import sys
 import sc2
+import ipdb
+
 from math import ceil
+
 from sc2 import Race, Difficulty
 
 from sc2.player import Bot, Computer
@@ -29,6 +32,8 @@ class TapiocaBot(sc2.BotAI):
     def __init__(self, verbose=False, visual_debug=False):
         self.verbose = verbose
         self.visual_debug = visual_debug
+
+        ipdb.launch_ipdb_on_exception()
 
         # Control Stuff
         self.researched_warpgate = False  # Remove me later

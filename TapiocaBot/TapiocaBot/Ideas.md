@@ -1,5 +1,6 @@
 # TODO
 
+- Use a cluster analysis for build orders
 - Harass controller for early 2 adepts + 2 stalkers
 - Harass controller for glaive adepts
 - Warp Prism controller

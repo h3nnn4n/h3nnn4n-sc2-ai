@@ -45,7 +45,8 @@ difficulty = difficulties[6]
 
 if __name__ == '__main__':
     if "--LadderServer" in sys.argv:
-        tapioca = TapiocaBot()
+        # tapioca = TapiocaBot()
+        tapioca = TapiocaBot(verbose=True, visual_debug=True)
         bot = Bot(Race.Protoss, tapioca)
         print("Starting ladder game...")
         run_ladder_game(bot)
